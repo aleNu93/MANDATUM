@@ -1,112 +1,111 @@
-# 🛡️ MANDATUM
-### Delegación digital de facultades con autorización biométrica
+# 🛡️ MANDATUM  
+### Digital Delegation of Authority with Biometric Authorization
 
 ---
 
-## 📌 Descripción general
+## 📌 General Description
 
-**MANDATUM** es una plataforma de **delegación digital de facultades** que permite a una persona titular autorizar a un tercero para ejecutar trámites o acciones específicas, bajo condiciones estrictas de **alcance**, **vigencia** y **revocación**, sin compartir credenciales ni comprometer su identidad.
+**MANDATUM** is a platform for **digital delegation of authority** that enables a principal to authorize a third party to perform specific actions or administrative procedures under clearly defined conditions of **scope**, **validity**, and **revocation**, without sharing credentials or compromising identity.
 
-El sistema combina **autorización biométrica a nivel de dispositivo** con **criptografía asimétrica**, utilizando firmas digitales para representar y verificar la voluntad jurídica del otorgante de forma segura, trazable y verificable.
-
----
-
-## 🎯 Objetivo del proyecto
-
-Diseñar e implementar un modelo tecnológico que represente digitalmente el concepto jurídico de **poder especial**, demostrando cómo la ingeniería de sistemas puede aportar soluciones seguras y auditables a procesos tradicionalmente manuales y centralizados.
+The system integrates **device-level biometric authorization** with **asymmetric cryptography**, using digital signatures to securely represent and verify the legal intent of the grantor in a manner that is traceable, auditable, and technically verifiable.
 
 ---
 
-## 🔐 Principios de seguridad
+## 🎯 Project Objective
 
-- **No repudio**  
-  Cada delegación se emite mediante una firma digital verificable.
-
-- **Integridad**  
-  Los poderes digitales no pueden ser modificados sin invalidar la firma.
-
-- **Control de alcance**  
-  Cada poder define explícitamente las facultades autorizadas.
-
-- **Temporalidad**  
-  Las autorizaciones tienen una vigencia limitada y configurable.
-
-- **Revocación**  
-  El otorgante puede invalidar un poder en cualquier momento.
+To design and implement a technological model that digitally represents the legal concept of a **special power of attorney**, demonstrating how systems engineering can provide secure and auditable solutions to processes that are traditionally manual and centralized.
 
 ---
 
-## 🧬 Uso de biometría
+## 🔐 Security Principles
 
-La biometría **no se utiliza como contraseña ni se almacena en el sistema**.
+- **Non-repudiation**  
+  Each delegation is issued through a verifiable digital signature.
 
-Su función es:
-- Autorizar el uso de la **clave privada** del titular.
-- Garantizar consentimiento explícito para cada firma.
-- Mantener la identidad protegida dentro del entorno seguro del sistema operativo.
+- **Integrity**  
+  Digital powers cannot be altered without invalidating the signature.
 
----
+- **Scope Control**  
+  Each power explicitly defines the authorized actions.
 
-## ✍️ Firma digital y delegación
+- **Temporal Validity**  
+  Authorizations are issued with limited and configurable duration.
 
-Cada **poder digital** incluye:
-
-- Identidad criptográfica del otorgante  
-- Identidad criptográfica del apoderado  
-- Facultades autorizadas (tipo de trámite o acción)  
-- Recurso específico (por ejemplo, un vehículo o expediente)  
-- Tiempo de vigencia  
-- Restricciones de uso (una o múltiples ejecuciones)
-
-El documento es hasheado y firmado digitalmente, permitiendo su validación independiente y su auditoría posterior.
+- **Revocation**  
+  The grantor may revoke a digital power at any time.
 
 ---
 
-## 🏛️ Casos de uso propuestos
+## 🧬 Use of Biometrics
 
-- 🚗 Traspaso de vehículos  
-- 🗂️ Trámites administrativos delegados  
-- 🏫 Autorizaciones académicas o institucionales  
-- 🏢 Gestión de permisos corporativos temporales  
+Biometrics are **not used as passwords and are never stored within the system**.
 
----
+Their function is limited to:
 
-## 🧱 Arquitectura (alto nivel)
-
-- **Cliente (Web / Mobile)**  
-  Interfaz de usuario y autorización biométrica.
-
-- **Servicio de delegación**  
-  Creación y emisión de poderes digitales.
-
-- **Servicio de verificación**  
-  Validación de firmas, vigencia y alcance.
-
-- **Registro de auditoría**  
-  Evidencia verificable de todos los eventos relevantes.
+- Authorizing the use of the principal’s **private key**.  
+- Ensuring explicit consent for each digital signature.  
+- Keeping identity data protected within the secure environment of the operating system.  
 
 ---
 
-## ⚙️ Enfoque DevOps
+## ✍️ Digital Signature and Delegation Model
 
-- Arquitectura modular y desacoplada  
-- APIs seguras y versionadas  
-- Contenerización para despliegues reproducibles  
-- Preparación para CI/CD  
-- Observabilidad mediante logs y métricas  
-- Gestión segura de secretos y claves  
+Each **digital power of attorney** includes:
 
----
+- Cryptographic identity of the grantor  
+- Cryptographic identity of the delegate  
+- Authorized actions or procedures  
+- Specific resource, such as a vehicle or administrative record  
+- Defined validity period  
+- Usage restrictions, whether single or multiple executions  
 
-## ⚠️ Alcance y consideraciones legales
-
-Este proyecto es un **prototipo académico**.
-
-- ❌ No reemplaza procesos notariales  
-- ❌ No tiene validez legal vigente  
-- ✅ Demuestra una aproximación técnica aplicable a marcos legales futuros  
-- ✅ Modela conceptos jurídicos reales desde la ingeniería de sistemas  
-
+The document is hashed and digitally signed, enabling independent validation and subsequent auditing.
 
 ---
 
+## 🏛️ Proposed Use Cases
+
+- 🚗 Vehicle ownership transfer  
+- 🗂️ Delegated administrative procedures  
+- 🏫 Academic or institutional authorizations  
+- 🏢 Temporary corporate permission management  
+
+---
+
+## 🧱 High-Level Architecture
+
+- **Client (Web / Mobile)**  
+  User interface and biometric authorization layer.
+
+- **Delegation Service**  
+  Creation and issuance of digital powers.
+
+- **Verification Service**  
+  Validation of signatures, validity period, and scope.
+
+- **Audit Registry**  
+  Verifiable record of all relevant system events.
+
+---
+
+## ⚙️ DevOps Approach
+
+- Modular and decoupled architecture  
+- Secure, versioned APIs  
+- Containerization for reproducible deployments  
+- CI/CD readiness  
+- Observability through structured logging and metrics  
+- Secure management of secrets and cryptographic keys  
+
+---
+
+## ⚠️ Scope and Legal Considerations
+
+This project is an **academic prototype**.
+
+- ❌ It does not replace notarial processes.  
+- ❌ It does not have current legal validity.  
+- ✅ It demonstrates a technical approach potentially applicable within future regulatory frameworks.  
+- ✅ It models real legal concepts through a systems engineering perspective.  
+
+---
