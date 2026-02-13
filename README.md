@@ -1,5 +1,4 @@
-# 🛡️ MANDATUM  
-### Digital Delegation of Authority with Biometric Authorization
+# 🛡️ MANDATUM - Digital Delegation of Authority Platform (In Progress)
 
 ---
 
