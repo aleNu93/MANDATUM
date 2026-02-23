@@ -1,0 +1,245 @@
+/* css/main.css
+   Estilo institucional para Mandatum - archivo completo listo para usar
+   Coloca las imágenes en:
+     /images/mandatumlogo.png
+     /images/authbackground.png
+     /images/backgroundgeneral.png
+*/
+
+:root{
+  /* variables que ya contienen url(...) para evitar problemas con url(var(...)) */
+  --logo: url("/images/mandatumlogo.png");
+  --auth-bg: url("/images/authbackground.png");
+  --dash-bg: url("/images/backgroundgeneral.png");
+
+  --bg-0: #f5f7fa;
+  --bg-1: #eef4fb;
+  --card: #ffffff;
+  --accent: #0d3b66;
+  --accent-2: #0f6694;
+  --muted: #6b7280;
+  --success: #0f9d58;
+  --danger: #d9534f;
+  --glass: rgba(255,255,255,0.6);
+  --shadow-sm: 0 6px 18px rgba(12,40,80,0.06);
+  --shadow-md: 0 18px 48px rgba(12,40,80,0.08);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --maxw: 1200px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Helvetica Neue", monospace;
+  --ui-font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --text: #102a43;
+  --muted-contrast: rgba(16,42,67,0.06);
+}
+
+/* Reset / base */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:var(--ui-font);
+  color:var(--text);
+  background:linear-gradient(180deg,var(--bg-0),var(--bg-1));
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.45;
+  font-size:16px;
+}
+
+/* Layout */
+.app{min-height:100%;display:flex;flex-direction:column}
+
+/* Header — adaptado para logo grande */
+header{
+  display:flex;
+  align-items:center;
+  gap:28px;
+  padding:22px 28px;
+  min-height:260px; /* altura real para logo institucional */
+  background:transparent;
+}
+
+/* Brand: logo present in all pages */
+.brand{display:flex;align-items:center;gap:16px}
+.brand__logo{
+  width:280px;
+  height:280px;
+  background-image: var(--logo);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  border-radius:10px;
+  flex:0 0 280px;
+  display:block;
+  overflow:hidden;
+}
+.brand__title{display:flex;flex-direction:column}
+.brand__title h1{
+  margin:0;
+  font-size:32px;
+  color:var(--accent);
+  letter-spacing:0.3px;
+  font-weight:900;
+}
+
+.brand__title .muted{
+  color:var(--muted);
+  font-size:16px;
+  margin-top:8px
+}
+
+/* Nav */
+nav{margin-left:auto;display:flex;gap:8px;align-items:center}
+a.nav-link{
+  text-decoration:none;padding:8px 12px;border-radius:10px;font-weight:600;color:var(--accent);
+  display:inline-flex;align-items:center;gap:8px;transition:all .18s ease;border:1px solid transparent;
+}
+a.nav-link:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+a.nav-link.primary{background:var(--accent);color:#fff;border-color:rgba(0,0,0,0.04)}
+a.nav-link.secondary{background:transparent;border:1px solid rgba(13,59,102,0.06)}
+
+/* Splash / preloader (full-screen) */
+#splash{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:linear-gradient(180deg,var(--accent),var(--accent-2));
+  color:#fff;z-index:9999;
+  transition: opacity 0.6s ease;
+}
+#splash.hidden{
+  opacity:0;
+  pointer-events:none;
+}
+#splash .splash__logo{
+  width:110px;height:110px;
+  background-image: var(--logo);
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+  border-radius:12px;
+  box-shadow:0 14px 50px rgba(0,0,0,0.28);
+}
+#splash h2{margin:0;font-size:22px;font-weight:700}
+#splash p{margin:0;opacity:0.92;font-size:14px}
+#splash .spinner{
+  width:46px;height:46px;border-radius:50%;
+  border:4px solid rgba(255,255,255,0.12);
+  border-top-color:rgba(255,255,255,0.95);
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Main container */
+main{flex:1;display:flex;justify-content:center;padding:28px}
+.container{width:100%;max-width:var(--maxw)}
+
+/* Card */
+.card{
+  background:var(--card);
+  border-radius:var(--radius-md);
+  box-shadow:var(--shadow-md);
+  padding:20px;
+  border:1px solid var(--muted-contrast);
+}
+
+/* Grid utilities */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.panel{padding:14px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid rgba(13,59,102,0.04)}
+
+/* Typography helpers */
+.h1{font-size:20px;margin:0 0 8px;font-weight:700;color:var(--text)}
+.muted{color:var(--muted);font-size:14px}
+.small{font-size:13px;color:var(--muted)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid transparent;font-weight:700;cursor:pointer}
+.btn--primary{background:var(--accent);color:#fff}
+.btn--ghost{background:transparent;border:1px solid rgba(13,59,102,0.06);color:var(--accent)}
+.btn:active{transform:translateY(1px)}
+
+/* Forms */
+.form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+input[type="text"], input[type="password"], input[type="email"], textarea, select{
+  padding:10px 12px;border-radius:8px;border:1px solid rgba(12,40,80,0.08);background:linear-gradient(#fff,#fbfdff);outline:none;font-size:15px
+}
+input:focus, textarea:focus, select:focus{box-shadow:0 6px 18px rgba(13,59,102,0.06);border-color:var(--accent-2)}
+
+/* Table for auditoria / logs */
+.table{width:100%;border-collapse:collapse;background:transparent}
+.table th, .table td{padding:10px 12px;border-bottom:1px solid rgba(12,40,80,0.04);text-align:left;font-size:14px}
+.table th{font-weight:700;color:var(--muted);font-size:13px}
+.row--success{color:var(--success)}
+.row--danger{color:var(--danger)}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:rgba(13,59,102,0.06);color:var(--accent)}
+
+/* Small utilities */
+.kv{display:flex;justify-content:space-between;gap:8px}
+.center{display:flex;align-items:center;justify-content:center}
+.column{display:flex;flex-direction:column}
+
+/* Responsive */
+@media (max-width:760px){
+  .grid{grid-template-columns:1fr}
+  
+  header{
+    padding:14px;
+    min-height:auto;
+  }
+
+  .brand{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .brand__logo{
+    width:140px;
+    height:140px;
+    flex:0 0 140px;
+  }
+
+  .brand__title h1{font-size:20px}
+  nav{gap:6px;margin-top:10px}
+}
+
+/* Accessibility helpers */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Print */
+@media print{
+  header, nav, #splash, .btn, footer{display:none}
+  body{background:#fff;color:#000}
+  .card{box-shadow:none;border:1px solid #e8e8e8}
+}
+
+/* Edge cases: ensure any white logo elements inside the shield render solid on dark backgrounds */
+.logo-white-protect{
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,0.06));
+}
+
+/* Small helpers for audit detail panels */
+.audit-meta{display:flex;gap:12px;flex-wrap:wrap}
+.audit-meta .item{background:rgba(13,59,102,0.04);padding:8px 10px;border-radius:8px;font-size:13px;color:var(--muted)}
+
+/* Overflow containers */
+.scroll-x{overflow:auto;white-space:nowrap;padding-bottom:6px}
+
+/* Utilities */
+.text-center{text-align:center}
+.mt-2{margin-top:8px}
+.mt-4{margin-top:16px}
+.p-2{padding:8px}
+
+/* ===== AUTH PAGE ONLY ===== */
+body.auth-page header{
+  justify-content:center;
+}
+
+body.auth-page .brand{
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+}
+
+body.auth-page nav{
+  display:none;
+}

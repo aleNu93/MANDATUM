@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mandatum | Crear delegación</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body class="app"
+      style="
+        background-image: linear-gradient(rgba(255,255,255,0.35), rgba(255,255,255,0.35)), var(--dash-bg);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      ">
+
+  <div id="splash" class="hidden" aria-hidden="true">
+    <div class="splash__logo" aria-hidden="true" style="background-image:var(--logo);"></div>
+    <h2>Mandatum</h2>
+    <p>Cargando el sistema…</p>
+    <div class="spinner" role="status" aria-hidden="true"></div>
+  </div>
+
+  <header>
+    <div class="brand" role="banner">
+      <a href="../index.html" class="brand__logo" aria-label="Mandatum logo" style="background-image:var(--logo);">
+        <img src="../images/mandatumlogo.png" alt="Mandatum"
+             style="width:100%;height:100%;object-fit:contain;display:block"
+             onerror="this.style.display='none'">
+      </a>
+
+      <div class="brand__title">
+        <h1>Mandatum</h1>
+        <div class="muted">Delegaciones</div>
+      </div>
+    </div>
+
+    <nav aria-label="Navegación principal">
+      <a class="nav-link" href="../dashboard.html">Dashboard</a>
+      <a class="nav-link primary" href="crear.html">Crear</a>
+      <a class="nav-link" href="emitidas.html">Emitidas</a>
+      <a class="nav-link" href="recibidas.html">Recibidas</a>
+      <a class="nav-link" href="revocar.html">Revocar</a>
+      <a class="nav-link" href="usar.html">Usar</a>
+      <a class="nav-link secondary" href="../auth.html">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="grid mt-2">
+        <section class="panel card" aria-labelledby="formCrear" style="grid-column:span 2">
+          <h2 id="formCrear" class="h1">Crear delegación</h2>
+          <p class="small muted">Formulario estático de ejemplo. Define los parámetros principales de la delegación.</p>
+
+          <div class="form-row mt-2">
+            <label class="small muted" for="delegado">Delegado</label>
+            <input id="delegado" type="text" placeholder="usuario destino (ej. m.lopez)" />
+          </div>
+
+          <div class="form-row">
+            <label class="small muted" for="alcance">Alcance</label>
+            <select id="alcance">
+              <option>Firma de documentos</option>
+              <option>Gestión de delegaciones</option>
+              <option>Acceso restringido</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="small muted" for="vigencia">Vigencia</label>
+            <select id="vigencia">
+              <option>24 horas</option>
+              <option>7 días</option>
+              <option>30 días</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label class="small muted" for="nota">Justificación</label>
+            <textarea id="nota" rows="4" placeholder="Motivo y contexto de la delegación…"></textarea>
+          </div>
+
+          <div class="mt-2">
+            <button class="btn btn--primary" type="button">Crear</button>
+            <button class="btn btn--ghost" type="button" style="margin-left:8px">Cancelar</button>
+          </div>
+        </section>
+
+        <section class="panel card" aria-labelledby="tips">
+          <h2 id="tips" class="h1" style="font-size:16px;margin-bottom:8px">Controles</h2>
+          <div class="audit-meta mt-2">
+            <div class="item">Validación: pendiente</div>
+            <div class="item">Firma: no conectada</div>
+            <div class="item">Registro: simulado</div>
+          </div>
+
+          <div class="mt-4">
+            <div class="badge">Recomendación: limitar alcance</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="mt-4 card">
+        <h3 class="h1">Observaciones</h3>
+        <p class="small muted">La delegación debe definirse con mínimos privilegios y con vigencia acotada. La auditoría de creación y uso se integrará con el módulo de logs.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="p-2 center"><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    (function(){
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.classList.remove('hidden');
+        setTimeout(()=>splash.classList.add('hidden'), 600);
+      }
+
+      try {
+        const computed = getComputedStyle(document.documentElement);
+        const logoVar = (computed.getPropertyValue('--logo') || '').trim();
+        const dashVar = (computed.getPropertyValue('--dash-bg') || '').trim();
+        console.log('--logo =', logoVar || 'VACÍA');
+        console.log('--dash-bg =', dashVar || 'VACÍA');
+      } catch(e){
+        console.warn('No fue posible leer las variables CSS: ', e);
+      }
+    })();
+  </script>
+</body>
+</html>

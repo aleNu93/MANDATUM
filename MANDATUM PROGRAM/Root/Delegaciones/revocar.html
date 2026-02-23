@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mandatum | Revocar delegación</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body class="app"
+      style="
+        background-image: linear-gradient(rgba(255,255,255,0.35), rgba(255,255,255,0.35)), var(--dash-bg);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      ">
+
+  <div id="splash" class="hidden" aria-hidden="true">
+    <div class="splash__logo" aria-hidden="true" style="background-image:var(--logo);"></div>
+    <h2>Mandatum</h2>
+    <p>Cargando el sistema…</p>
+    <div class="spinner" role="status" aria-hidden="true"></div>
+  </div>
+
+  <header>
+    <div class="brand" role="banner">
+      <a href="../index.html" class="brand__logo" aria-label="Mandatum logo" style="background-image:var(--logo);">
+        <img src="../images/mandatumlogo.png" alt="Mandatum"
+             style="width:100%;height:100%;object-fit:contain;display:block"
+             onerror="this.style.display='none'">
+      </a>
+
+      <div class="brand__title">
+        <h1>Mandatum</h1>
+        <div class="muted">Revocación</div>
+      </div>
+    </div>
+
+    <nav aria-label="Navegación principal">
+      <a class="nav-link" href="../dashboard.html">Dashboard</a>
+      <a class="nav-link" href="crear.html">Crear</a>
+      <a class="nav-link" href="emitidas.html">Emitidas</a>
+      <a class="nav-link" href="recibidas.html">Recibidas</a>
+      <a class="nav-link primary" href="revocar.html">Revocar</a>
+      <a class="nav-link" href="usar.html">Usar</a>
+      <a class="nav-link secondary" href="../auth.html">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="grid mt-2">
+        <section class="panel card" aria-labelledby="rev">
+          <h2 id="rev" class="h1">Revocar delegación</h2>
+          <p class="small muted">Interfaz de ejemplo para revocación por ID.</p>
+
+          <div class="form-row mt-2">
+            <label class="small muted" for="id">ID de delegación</label>
+            <input id="id" type="text" placeholder="DLG-778" />
+          </div>
+
+          <div class="form-row">
+            <label class="small muted" for="motivo">Motivo</label>
+            <textarea id="motivo" rows="4" placeholder="Razón de la revocación…"></textarea>
+          </div>
+
+          <div class="mt-2">
+            <button class="btn btn--primary" type="button">Revocar</button>
+            <a class="btn btn--ghost" href="emitidas.html" style="margin-left:8px">Ver emitidas</a>
+          </div>
+
+          <div class="mt-4">
+            <div class="badge">Acción irreversible (cuando exista backend)</div>
+          </div>
+        </section>
+
+        <section class="panel card" aria-labelledby="ult">
+          <h2 id="ult" class="h1" style="font-size:16px;margin-bottom:8px">Últimas revocaciones</h2>
+
+          <div class="scroll-x mt-2">
+            <table class="table" role="table" aria-label="Revocaciones recientes">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Fecha</th>
+                  <th>Motivo</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row--danger">
+                  <td>DLG-702</td>
+                  <td>2026-02-22</td>
+                  <td>Incumplimiento de política</td>
+                  <td>Revocada</td>
+                </tr>
+                <tr class="row--danger">
+                  <td>DLG-688</td>
+                  <td>2026-02-18</td>
+                  <td>Caducidad anticipada</td>
+                  <td>Revocada</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 audit-meta">
+            <div class="item">Registro: pendiente</div>
+            <div class="item">Firma: pendiente</div>
+            <div class="item">Confirmación: pendiente</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="p-2 center"><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    (function(){
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.classList.remove('hidden');
+        setTimeout(()=>splash.classList.add('hidden'), 600);
+      }
+
+      try {
+        const computed = getComputedStyle(document.documentElement);
+        const logoVar = (computed.getPropertyValue('--logo') || '').trim();
+        const dashVar = (computed.getPropertyValue('--dash-bg') || '').trim();
+        console.log('--logo =', logoVar || 'VACÍA');
+        console.log('--dash-bg =', dashVar || 'VACÍA');
+      } catch(e){
+        console.warn('No fue posible leer las variables CSS: ', e);
+      }
+    })();
+  </script>
+</body>
+</html>

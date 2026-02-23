@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mandatum | Admin Dashboard</title>
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+
+<body class="app"
+      style="
+        background-image: linear-gradient(rgba(255,255,255,0.35), rgba(255,255,255,0.35)), var(--dash-bg);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      ">
+
+  <div id="splash" class="hidden" aria-hidden="true">
+    <div class="splash__logo" aria-hidden="true" style="background-image:var(--logo);"></div>
+    <h2>Mandatum</h2>
+    <p>Cargando el sistema…</p>
+    <div class="spinner" role="status" aria-hidden="true"></div>
+  </div>
+
+  <header>
+    <div class="brand" role="banner">
+      <a href="../index.html" class="brand__logo" aria-label="Mandatum logo" style="background-image:var(--logo);">
+        <img src="../images/mandatumlogo.png" alt="Mandatum"
+             style="width:100%;height:100%;object-fit:contain;display:block"
+             onerror="this.style.display='none'">
+      </a>
+
+      <div class="brand__title">
+        <h1>Mandatum</h1>
+        <div class="muted">Administración</div>
+      </div>
+    </div>
+
+    <nav aria-label="Navegación principal">
+      <a class="nav-link" href="../dashboard.html">Dashboard</a>
+      <a class="nav-link primary" href="admin_dashboard.html">Admin</a>
+      <a class="nav-link" href="logs.html">Logs</a>
+      <a class="nav-link" href="usuarios.html">Usuarios</a>
+      <a class="nav-link secondary" href="../auth.html">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="grid mt-2">
+        <section class="panel card" aria-labelledby="ops">
+          <h2 id="ops" class="h1">Operación</h2>
+
+          <div class="audit-meta mt-2">
+            <div class="item">Servicios: OK</div>
+            <div class="item">Políticas: vigentes</div>
+            <div class="item">Auditoría: activa</div>
+          </div>
+
+          <div class="mt-4">
+            <a class="btn btn--primary" href="logs.html">Ver logs</a>
+            <a class="btn btn--ghost" href="usuarios.html" style="margin-left:8px">Gestionar usuarios</a>
+          </div>
+        </section>
+
+        <section class="panel card" aria-labelledby="resumenadmin">
+          <h2 id="resumenadmin" class="h1" style="font-size:16px;margin-bottom:8px">Resumen administrativo</h2>
+
+          <div class="kv mt-2">
+            <div>
+              <div class="small muted">Usuarios activos</div>
+              <div class="h1">42</div>
+            </div>
+            <div>
+              <div class="small muted">Bloqueos hoy</div>
+              <div class="h1 row--danger">1</div>
+            </div>
+            <div>
+              <div class="small muted">Eventos auditados</div>
+              <div class="h1">1,128</div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="badge">Modo: Frontend</div>
+          </div>
+        </section>
+
+        <section class="panel card" aria-labelledby="acciones">
+          <h2 id="acciones" class="h1" style="font-size:16px;margin-bottom:8px">Acciones rápidas</h2>
+
+          <div class="form-row mt-2">
+            <label class="small muted" for="q">Búsqueda rápida</label>
+            <input id="q" type="text" placeholder="Buscar por usuario, evento, id…" />
+          </div>
+
+          <div class="mt-2">
+            <button class="btn btn--primary" type="button">Buscar</button>
+            <button class="btn btn--ghost" type="button" style="margin-left:8px">Exportar</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="mt-4 card">
+        <h3 class="h1">Notas</h3>
+        <p class="small muted">Este panel es estático. La integración real incluirá filtros, paginación y exportación conectada a backend.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="p-2 center"><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    (function(){
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.classList.remove('hidden');
+        setTimeout(()=>splash.classList.add('hidden'), 600);
+      }
+
+      try {
+        const computed = getComputedStyle(document.documentElement);
+        const logoVar = (computed.getPropertyValue('--logo') || '').trim();
+        const dashVar = (computed.getPropertyValue('--dash-bg') || '').trim();
+        console.log('--logo =', logoVar || 'VACÍA');
+        console.log('--dash-bg =', dashVar || 'VACÍA');
+      } catch(e){
+        console.warn('No fue posible leer las variables CSS: ', e);
+      }
+    })();
+  </script>
+</body>
+</html>
