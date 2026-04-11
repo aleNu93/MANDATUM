@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Dashboard Administrador</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <style>
+    .timeline { display:flex; flex-direction:column; gap:0; }
+    .timeline-item { display:flex; gap:14px; padding-bottom:14px; position:relative; }
+    .timeline-item:not(:last-child)::before { content:''; position:absolute; left:15px; top:32px; bottom:0; width:2px; background:var(--border); }
+    .timeline-dot { width:32px; height:32px; border-radius:50%; background:var(--accent-light); display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; z-index:1; }
+    .timeline-content { flex:1; padding-top:4px; }
+  </style>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="dashboardAdmin.html" class="brand__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted" id="hdr-sub">Panel admin</div></div>
+    </div>
+    <nav>
+      <a class="nav-link primary" href="dashboardAdmin.html">Dashboard</a>
+      <a class="nav-link" href="admin/usuarios.html">Usuarios</a>
+      <a class="nav-link" href="admin/logs.html">Auditoría</a>
+      <a class="nav-link" href="admin/admin_dashboard.html">Resumen completo</a>
+      <a class="nav-link" href="profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- KPIs row -->
+      <div class="kv" style="margin-bottom:16px">
+        <div class="kv-card"><div class="kv-label">Usuarios</div><div class="kv-val" id="kv-users">0</div></div>
+        <div class="kv-card"><div class="kv-label">Delegaciones totales</div><div class="kv-val" id="kv-del">0</div></div>
+        <div class="kv-card"><div class="kv-label">Activas</div><div class="kv-val" id="kv-act" style="color:var(--success)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Pendientes</div><div class="kv-val" id="kv-pend" style="color:var(--warning)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Revocadas</div><div class="kv-val" id="kv-rev" style="color:var(--danger)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Fallos de auth</div><div class="kv-val" id="kv-authfail" style="color:var(--danger)">0</div></div>
+      </div>
+
+      <div class="grid">
+
+        <!-- System health -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">Estado del sistema</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:13px;font-weight:700">Criptografía WebCrypto</div><div class="small">RSA-OAEP / ECDSA / HMAC</div></div>
+              <span id="crypto-status" class="badge">…</span>
+            </div>
+            <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:13px;font-weight:700">Cámara / MediaDevices</div><div class="small">Reconocimiento facial</div></div>
+              <span id="cam-status" class="badge">…</span>
+            </div>
+            <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:13px;font-weight:700">Base de datos JSON</div><div class="small">Servidor Flask (archivos en disco)</div></div>
+              <span id="storage-status" class="badge">…</span>
+            </div>
+            <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-size:13px;font-weight:700">Integridad de delegaciones</div><div class="small">Verificación ECDSA</div></div>
+              <span id="integrity-status" class="badge">…</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+            <a class="btn btn--primary btn--sm" href="admin/usuarios.html">Gestión usuarios</a>
+            <a class="btn btn--ghost btn--sm" href="admin/logs.html">Ver auditoría</a>
+            <button class="btn btn--ghost btn--sm" id="btn-verify-all">🔍 Verificar firmas</button>
+          </div>
+        </div>
+
+        <!-- Delegation breakdown -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">Delegaciones por estado</div>
+          <div id="del-breakdown" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div style="margin-top:14px">
+            <a class="btn btn--ghost btn--sm" href="admin/admin_dashboard.html">Ver todas →</a>
+          </div>
+        </div>
+
+        <!-- Recent timeline -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">Actividad reciente del sistema</div>
+          <div class="timeline" id="timeline"></div>
+        </div>
+
+        <!-- Users overview -->
+        <div class="card col-span-2">
+          <div class="card-title" style="margin-bottom:12px">Usuarios registrados</div>
+          <div class="scroll-x">
+            <table class="table" id="users-table">
+              <thead><tr><th>Usuario</th><th>Email</th><th>Facial</th><th>Firma</th><th>Emitidas</th><th>Recibidas</th><th>Registro</th></tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Verification results -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">Resultado de verificación ECDSA</div>
+          <div id="verify-results" style="display:flex;flex-direction:column;gap:6px">
+            <p class="small muted">Haga clic en "Verificar firmas" para comprobar la integridad de todas las delegaciones.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+    <script src="JS/sha256.js"></script>
+  <script src="JS/facialRecognition.js"></script>
+  <script src="JS/signatureRecognition.js"></script>
+  <script src="JS/db.js"></script>
+  <script src="JS/session.js"></script>
+  <script src="JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const session = MdtSession.requireAdmin();
+    if(!session) throw new Error('not logged');
+    document.getElementById('hdr-sub').textContent = 'Admin — ' + session.fullname;
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(session.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='auth.html';};
+
+    await MdtDelegations.checkExpired();
+    const users = await MdtDB.Users.getAll();
+    const delegaciones = await MdtDelegations.getAll();
+    const logs = await MdtAudit.getAll();
+
+    // KPIs
+    document.getElementById('kv-users').textContent=users.length;
+    document.getElementById('kv-del').textContent=delegaciones.length;
+    document.getElementById('kv-act').textContent=delegaciones.filter(d=>d.status==='ACTIVE').length;
+    document.getElementById('kv-pend').textContent=delegaciones.filter(d=>d.status==='WAITING_ACCEPT').length;
+    document.getElementById('kv-rev').textContent=delegaciones.filter(d=>d.status==='REVOKED').length;
+    document.getElementById('kv-authfail').textContent=logs.filter(l=>!l.success&&l.action.includes('AUTH')||l.action.includes('FAILED')).length;
+
+    // System health checks
+    (async()=>{
+      // Crypto
+      try {
+        await window.crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},false,['sign','verify']);
+        document.getElementById('crypto-status').textContent='✓ Operativo';
+        document.getElementById('crypto-status').className='badge badge--success';
+      } catch {
+        document.getElementById('crypto-status').textContent='✗ Error';
+        document.getElementById('crypto-status').className='badge badge--danger';
+      }
+      // Camera
+      if (navigator.mediaDevices?.getUserMedia) {
+        document.getElementById('cam-status').textContent='✓ Disponible';
+        document.getElementById('cam-status').className='badge badge--success';
+      } else {
+        document.getElementById('cam-status').textContent='✗ No disponible';
+        document.getElementById('cam-status').className='badge badge--danger';
+      }
+      // Storage
+      try {
+        const r = await fetch('/api/db/userDB');
+        const data = await r.json();
+        document.getElementById('storage-status').textContent=`✓ Servidor activo (${data.length} usuarios)`;
+        document.getElementById('storage-status').className='badge badge--success';
+      } catch {
+        document.getElementById('storage-status').textContent='✗ Error';
+        document.getElementById('storage-status').className='badge badge--danger';
+      }
+      // Integrity placeholder
+      document.getElementById('integrity-status').textContent='Pendiente de verificación';
+      document.getElementById('integrity-status').className='badge badge--warning';
+    })();
+
+    // Delegation breakdown
+    const statuses=[{k:'ACTIVE',l:'Activas',c:'success'},{k:'WAITING_ACCEPT',l:'Pendientes',c:'warning'},{k:'REVOKED',l:'Revocadas',c:'danger'},{k:'EXPIRED',l:'Expiradas',c:'gray'}];
+    const breakdown=document.getElementById('del-breakdown');
+    statuses.forEach(s=>{
+      const count=delegaciones.filter(d=>d.status===s.k).length;
+      const pct=delegaciones.length>0?Math.round(count/delegaciones.length*100):0;
+      const div=document.createElement('div');
+      div.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:13px;font-weight:600">${s.l}</span>
+        <span class="badge badge--${s.c}">${count}</span>
+      </div>
+      <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${s.c==='success'?'var(--success)':s.c==='danger'?'var(--danger)':s.c==='warning'?'#f59e0b':'#9ca3af'};border-radius:4px;transition:width .5s"></div>
+      </div>`;
+      breakdown.appendChild(div);
+    });
+
+    // Timeline (last 8 events)
+    const timeline=document.getElementById('timeline');
+    const icons={'LOGIN_SUCCESS':'🔓','DELEGATION_CREATED':'📝','DELEGATION_ACCEPTED':'✅','DELEGATION_REVOKED':'🚫','DELEGATION_USED':'🔑','USER_REGISTERED':'👤','LOGIN_FAILED_PASSWORD':'⚠️','FACE_AUTH_FAILED':'📸','SIGNATURE_AUTH_FAILED':'✍️'};
+    const recent=[...logs].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,8);
+    if(recent.length===0) timeline.innerHTML='<p class="small muted">Sin actividad.</p>';
+    for (const l of recent) {
+      const actor=await MdtDB.Users.getById(l.actor);
+      const icon=icons[l.action]||'📋';
+      const div=document.createElement('div');
+      div.className='timeline-item';
+      div.innerHTML=`<div class="timeline-dot" style="background:${l.success?'var(--success-bg)':'var(--danger-bg)'}">${icon}</div>
+        <div class="timeline-content">
+          <div style="font-size:13px;font-weight:600">${l.action.replace(/_/g,' ')}</div>
+          <div class="small muted">${actor?.fullname||l.actor||'sistema'} · ${new Date(l.timestamp).toLocaleString('es-CR')}</div>
+        </div>`;
+      timeline.appendChild(div);
+    }
+
+    // Users table
+    const tbody=document.getElementById('users-tbody');
+    if(users.length===0) tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">Sin usuarios</td></tr>';
+    for (const u of users) {
+      const emitList  = await MdtDelegations.getByDelegador(u.id);
+      const recvList  = await MdtDelegations.getByDelegado(u.id);
+      const faceRec   = await MdtDB.FacialDB.getByUser(u.id);
+      const sigRec    = await MdtDB.SignatureDB.getByUser(u.id);
+      const emit = emitList.length;
+      const recv = recvList.length;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:600">${u.fullname}</td>
+        <td class="small">${u.email}</td>
+        <td>${faceRec ? '<span class="badge badge--success">✓</span>' : '<span class="badge badge--warning">✗</span>'}</td>
+        <td>${sigRec  ? '<span class="badge badge--success">✓</span>' : '<span class="badge badge--warning">✗</span>'}</td>
+        <td style="text-align:center">${emit}</td>
+        <td style="text-align:center">${recv}</td>
+        <td class="small muted">${mdtFormatDate(u.createdAt)}</td>`;
+      tbody.appendChild(tr);
+    }
+
+    // Verify all ECDSA signatures
+    document.getElementById('btn-verify-all').onclick = async () => {
+      const btn=document.getElementById('btn-verify-all');
+      btn.textContent='Verificando…'; btn.disabled=true;
+      const results=document.getElementById('verify-results');
+      results.innerHTML='';
+      let allOk=true;
+      for (const d of delegaciones) {
+        const delegador=await MdtDB.Users.getById(d.delegadorId);
+        if(!delegador||!d.ecdsaSignature){
+          const div=document.createElement('div');
+          div.className='panel';
+          div.innerHTML=`<div style="display:flex;justify-content:space-between"><span class="small">${d.id}</span><span class="badge badge--warning">Sin clave</span></div>`;
+          results.appendChild(div);
+          continue;
+        }
+        const docPayload=JSON.stringify({id:d.id,delegadorId:d.delegadorId,delegadorNombre:d.delegadorNombre,delegadoId:d.delegadoId,delegadoNombre:d.delegadoNombre,scope:d.scope,vigencia:d.vigencia,justificacion:d.justificacion,createdAt:d.createdAt});
+        const valid=await MdtCrypto.ecdsaVerify(delegador.publicKeyECDSA,docPayload,d.ecdsaSignature);
+        if(!valid)allOk=false;
+        const div=document.createElement('div');
+        div.className='panel';
+        div.style.cssText=`background:${valid?'#f0fdf4':'#fff0f0'};border-color:${valid?'#bbf7d0':'#fecaca'}`;
+        div.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="small" style="font-weight:600">${d.id}</div><div class="small muted">${d.scope}</div></div>
+          <span class="badge ${valid?'badge--success':'badge--danger'}">${valid?'✓ Válida':'✗ INVÁLIDA'}</span>
+        </div>`;
+        results.appendChild(div);
+      }
+      document.getElementById('integrity-status').textContent=allOk?'✓ Todas válidas':'⚠️ Fallos detectados';
+      document.getElementById('integrity-status').className='badge '+(allOk?'badge--success':'badge--danger');
+      btn.textContent='🔍 Verificar firmas'; btn.disabled=false;
+    };
+  })();
+</script>
+</body>
+</html>

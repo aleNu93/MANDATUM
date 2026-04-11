@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Delegaciones recibidas</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Delegaciones recibidas</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link" href="crear.html">Nueva Delegación</a>
+      <a class="nav-link" href="emitidas.html">Emitidas</a>
+      <a class="nav-link primary" href="recibidas.html">Recibidas</a>
+      <a class="nav-link" href="revocar.html">Revocar</a>
+      <a class="nav-link" href="usar.html">Usar</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <div id="global-msg" class="alert" style="display:none;margin-bottom:16px"></div>
+
+      <!-- Pending to accept -->
+      <div class="card" style="margin-bottom:16px" id="pending-card">
+        <div class="card-title" style="margin-bottom:4px">⏳ Pendientes de aceptar</div>
+        <div class="card-sub">Estas delegaciones requieren su aceptación con verificación biométrica para activarse.</div>
+
+        <div id="pending-list" style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+          <p class="small muted">No tiene delegaciones pendientes de aceptar.</p>
+        </div>
+      </div>
+
+      <!-- All received -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:4px">Todas las delegaciones recibidas</div>
+        <div class="card-sub">Historial completo de delegaciones que le han sido otorgadas.</div>
+
+        <div class="scroll-x" style="margin-top:14px">
+          <table class="table">
+            <thead>
+              <tr><th>ID</th><th>Delegador</th><th>Alcance</th><th>Vigencia</th><th>Estado</th><th>Firma verificada</th><th>Acción</th></tr>
+            </thead>
+            <tbody id="all-body">
+              <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No ha recibido delegaciones.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const user = MdtSession.require();
+    if(!user) throw new Error('not logged');
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(user.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='../auth.html';};
+
+    await MdtDelegations.checkExpired();
+
+    function showMsg(type, msg) {
+      const el = document.getElementById('global-msg');
+      el.className='alert alert-'+type; el.innerHTML=msg; el.style.display='flex';
+    }
+
+    async function acceptDelegation(id) {
+      try {
+        await MdtAuthModal.prompt(user.id, 'Confirmar aceptación de delegación');
+      } catch {
+        showMsg('error','Verificación cancelada. La delegación no fue aceptada.'); return;
+      }
+      try {
+        const d = await MdtDelegations.accept(id, user.id);
+        showMsg('success',`✓ Delegación <strong>${id}</strong> aceptada y activada. La firma ECDSA del delegador fue verificada correctamente.`);
+        render();
+      } catch(e) {
+        showMsg('error','Error al aceptar: '+e.message);
+      }
+    }
+
+    async function verifySignature(d) {
+      const delegador = await MdtDB.Users.getById(d.delegadorId);
+      const docPayload = JSON.stringify({
+        id:d.id,delegadorId:d.delegadorId,delegadorNombre:d.delegadorNombre,
+        delegadoId:d.delegadoId,delegadoNombre:d.delegadoNombre,
+        scope:d.scope,vigencia:d.vigencia,justificacion:d.justificacion,createdAt:d.createdAt
+      });
+      const valid = await MdtCrypto.ecdsaVerify(delegador.publicKeyECDSA, docPayload, d.ecdsaSignature);
+      const hash = await MdtCrypto.sha256(docPayload);
+      showMsg(valid?'success':'error',
+        valid ? `✓ Firma ECDSA válida para delegación <strong>${d.id}</strong><br/><span class="small">Hash del documento: <code>${hash.slice(0,32)}…</code></span>`
+              : `✗ FIRMA INVÁLIDA para <strong>${d.id}</strong> — El documento puede haber sido alterado.`);
+    }
+
+    async function render() {
+      const recibidas = await MdtDelegations.getByDelegado(user.id);
+      const pending = recibidas.filter(d=>d.status==='WAITING_ACCEPT');
+
+      // Pending section
+      const pendingList = document.getElementById('pending-list');
+      if (pending.length===0) {
+        pendingList.innerHTML='<p class="small muted">No tiene delegaciones pendientes de aceptar.</p>';
+      } else {
+        pendingList.innerHTML='';
+        for (const d of pending) {
+          const delegador=await MdtDB.Users.getById(d.delegadorId);
+          const div=document.createElement('div');
+          div.className='delegation-card';
+          div.style.borderLeft='4px solid var(--warning)';
+          div.innerHTML=`
+            <div class="delegation-card-header">
+              <div>
+                <div class="delegation-id">${d.id}</div>
+                <div class="delegation-scope">${d.scope}</div>
+              </div>
+              ${mdtStatusBadge(d.status)}
+            </div>
+            <div class="delegation-meta">
+              <div class="delegation-meta-item">De: <strong>${delegador?.fullname||d.delegadorId}</strong></div>
+              <div class="delegation-meta-item">Email: <strong>${delegador?.email||'—'}</strong></div>
+              <div class="delegation-meta-item">Vigencia hasta: <strong>${mdtFormatDate(d.vigencia)}</strong></div>
+            </div>
+            <div class="panel" style="background:#f8fafc">
+              <div class="small muted" style="margin-bottom:4px">Justificación del delegador</div>
+              <p class="small">${d.justificacion}</p>
+            </div>
+            <div style="padding:10px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd">
+              <p class="small" style="color:#0c4a6e">Al aceptar, se verificará la firma <span class="crypto-tag">ECDSA-P256</span> del delegador y se registrará su aceptación con autenticación de 3 factores.</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn--success" onclick="acceptDelegation('${d.id}')">✓ Aceptar con verificación biométrica</button>
+              <button class="btn btn--ghost btn--sm" onclick="verifyDelegationById('${d.id}')">🔍 Verificar firma</button>
+            </div>`;
+          pendingList.appendChild(div);
+        }
+      }
+
+      // All table
+      const all = [...recibidas].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      const tbody = document.getElementById('all-body');
+      if (all.length===0) {
+        tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No ha recibido delegaciones.</td></tr>';
+        return;
+      }
+      tbody.innerHTML='';
+      for (const d of all) {
+        const delegador=await MdtDB.Users.getById(d.delegadorId);
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td class="small" style="font-family:var(--mono)">${d.id}</td>
+          <td><div style="font-weight:600">${delegador?.fullname||d.delegadorId}</div><div class="small">${delegador?.email||''}</div></td>
+          <td>${d.scope}</td>
+          <td class="small">${mdtFormatDate(d.vigencia)}</td>
+          <td>${mdtStatusBadge(d.status)}</td>
+          <td><button class="btn btn--ghost btn--sm" onclick="verifyDelegationById('${d.id}')">🔍 Verificar</button></td>
+          <td>${d.status==='WAITING_ACCEPT'?`<button class="btn btn--success btn--sm" onclick="acceptDelegation('${d.id}')">Aceptar</button>`:
+               d.status==='ACTIVE'?`<a class="btn btn--primary btn--sm" href="usar.html?id=${d.id}">Usar</a>`:'—'}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    render();
+
+    async function verifyDelegationById(id) {
+      const d = await MdtDelegations.getById(id);
+      if (d) await verifySignature(d);
+    }
+
+    window.acceptDelegation = acceptDelegation;
+    window.verifyDelegationById = verifyDelegationById;
+  
+})();
+</script>
+</body>
+</html>

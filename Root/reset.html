@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Mandatum — Limpiar datos antiguos</title>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body class="app" style="align-items:center;justify-content:center">
+  <div style="max-width:480px;margin:60px auto;text-align:center;padding:32px" class="card">
+    <div style="font-size:48px;margin-bottom:16px">🧹</div>
+    <h1 style="font-size:22px;margin-bottom:8px">Limpiar datos de versión anterior</h1>
+    <p class="muted" style="margin-bottom:24px">
+      Si estaba probando la versión anterior (localStorage), use este botón para
+      limpiar los datos obsoletos del navegador y comenzar con la versión del servidor.
+    </p>
+    <div id="msg" style="display:none;margin-bottom:16px" class="alert alert-success"></div>
+    <button class="btn btn--danger" onclick="clearAll()" style="margin-bottom:10px;width:100%">
+      🗑 Limpiar datos del navegador (localStorage)
+    </button>
+    <a class="btn btn--ghost" href="index.html" style="width:100%;justify-content:center">
+      ← Volver al inicio
+    </a>
+  </div>
+  <script>
+    function clearAll() {
+      // Clear all mdt_ prefixed localStorage keys
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('mdt_'));
+      keys.forEach(k => localStorage.removeItem(k));
+      // Clear session
+      sessionStorage.removeItem('mdt_session');
+      const msg = document.getElementById('msg');
+      msg.innerHTML = `✓ Se eliminaron <strong>${keys.length}</strong> entradas de datos antiguos. Ahora los datos se guardan en los archivos JSON del servidor.`;
+      msg.style.display = 'block';
+      setTimeout(() => { window.location.href = 'index.html'; }, 2500);
+    }
+  </script>
+</body>
+</html>

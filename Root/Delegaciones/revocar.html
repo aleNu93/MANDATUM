@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Revocar delegación</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Revocar delegación</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link" href="crear.html">Nueva Delegación</a>
+      <a class="nav-link" href="emitidas.html">Emitidas</a>
+      <a class="nav-link" href="recibidas.html">Recibidas</a>
+      <a class="nav-link primary" href="revocar.html">Revocar</a>
+      <a class="nav-link" href="usar.html">Usar</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div id="global-msg" class="alert" style="display:none;margin-bottom:16px"></div>
+
+      <div class="card">
+        <div class="card-title">🚫 Revocar delegaciones</div>
+        <div class="card-sub">Puede revocar delegaciones que usted emitió o que le han sido asignadas. La revocación requiere autenticación de 3 factores y queda firmada criptográficamente.</div>
+
+        <div style="padding:12px;background:#fff8e1;border:1px solid #fde68a;border-radius:10px;margin:12px 0">
+          <p class="small" style="color:#78350f"><strong>Importante:</strong> La revocación es inmediata e irreversible. Se firma con <span class="crypto-tag">ECDSA-P256</span> y se registra en la auditoría. Si necesita otorgar el permiso nuevamente, deberá crear una nueva delegación.</p>
+        </div>
+
+        <!-- Revocable list -->
+        <div id="revocable-list" style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+          <p class="small muted">No tiene delegaciones que pueda revocar.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Confirm revoke modal -->
+  <div id="revoke-modal" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,.7);z-index:500;align-items:center;justify-content:center;padding:16px">
+    <div class="card" style="max-width:480px;width:100%">
+      <div style="font-size:40px;text-align:center;margin-bottom:12px">⚠️</div>
+      <div class="card-title" style="text-align:center;color:var(--danger)">Confirmar revocación</div>
+      <p class="small muted" style="text-align:center;margin:8px 0 16px">Esta acción es irreversible. La delegación quedará inactiva inmediatamente.</p>
+      <div id="revoke-detail" class="panel" style="margin-bottom:14px;background:#fff0f0;border-color:#fecaca"></div>
+      <div class="form-row">
+        <label>Motivo de la revocación</label>
+        <textarea id="revoke-reason" rows="3" placeholder="Indique el motivo (requerido)…"></textarea>
+      </div>
+      <div id="revoke-err" class="alert alert-error" style="display:none"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn--ghost" id="revoke-cancel">Cancelar</button>
+        <button class="btn btn--danger btn--full" id="revoke-confirm">🔐 Verificar y revocar</button>
+      </div>
+    </div>
+  </div>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const user = MdtSession.require();
+    if(!user) throw new Error('not logged');
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(user.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='../auth.html';};
+
+    function showMsg(type,msg){const el=document.getElementById('global-msg');el.className='alert alert-'+type;el.innerHTML=msg;el.style.display='flex';}
+
+    await MdtDelegations.checkExpired();
+
+    let pendingRevokeId = null;
+
+    async function openRevokeModal(id) {
+      const d = await MdtDelegations.getById(id);
+      if(!d) return;
+      pendingRevokeId = id;
+      const other = d.delegadorId===user.id ? await MdtDB.Users.getById(d.delegadoId) : await MdtDB.Users.getById(d.delegadorId);
+      const role = d.delegadorId===user.id ? 'delegado' : 'delegador';
+      document.getElementById('revoke-detail').innerHTML=`
+        <div class="small" style="line-height:1.8">
+          <strong>ID:</strong> ${d.id}<br/>
+          <strong>Alcance:</strong> ${d.scope}<br/>
+          <strong>${role.charAt(0).toUpperCase()+role.slice(1)}:</strong> ${other?.fullname}<br/>
+          <strong>Estado actual:</strong> ${d.status}
+        </div>`;
+      document.getElementById('revoke-reason').value='';
+      document.getElementById('revoke-err').style.display='none';
+      document.getElementById('revoke-modal').style.display='flex';
+    }
+
+    document.getElementById('revoke-cancel').onclick=async()=>{ document.getElementById('revoke-modal').style.display='none'; pendingRevokeId=null; };
+
+    document.getElementById('revoke-confirm').onclick = async () => {
+      const reason = document.getElementById('revoke-reason').value.trim();
+      const errEl = document.getElementById('revoke-err');
+      if (!reason) { errEl.textContent='El motivo es requerido'; errEl.style.display='flex'; return; }
+
+      document.getElementById('revoke-modal').style.display='none';
+
+      try {
+        await MdtAuthModal.prompt(user.id,'Confirmar revocación con verificación biométrica');
+      } catch { showMsg('error','Verificación cancelada. La delegación no fue revocada.'); return; }
+
+      try {
+        const d = await MdtDelegations.revoke(pendingRevokeId, user.id, reason);
+        showMsg('success',`✓ Delegación <strong>${d.id}</strong> revocada y firmada con ECDSA-P256. Registrado en auditoría.`);
+        pendingRevokeId=null;
+        render();
+      } catch(e) {
+        showMsg('error','Error al revocar: '+e.message);
+      }
+    };
+
+    async function render() {
+      // Delegations user can revoke: emitted (active or pending) + received (active)
+      const all = await MdtDelegations.getAll();
+      const revocable = all.filter(d=>
+        (['ACTIVE','WAITING_ACCEPT'].includes(d.status)) &&
+        (d.delegadorId===user.id || d.delegadoId===user.id)
+      );
+
+      const list = document.getElementById('revocable-list');
+      if (revocable.length===0) {
+        list.innerHTML='<p class="small muted">No tiene delegaciones que pueda revocar actualmente.</p>';
+        return;
+      }
+
+      // Check URL param
+      const urlId = new URLSearchParams(window.location.search).get('id');
+
+      list.innerHTML='';
+      for (const d of revocable.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))) {
+        const isEmisora = d.delegadorId===user.id;
+        const other = isEmisora ? await MdtDB.Users.getById(d.delegadoId) : await MdtDB.Users.getById(d.delegadorId);
+        const div=document.createElement('div');
+        div.className='delegation-card';
+        div.style.borderLeft=`4px solid ${d.status==='ACTIVE'?'var(--danger)':'var(--warning)'}`;
+        div.innerHTML=`
+          <div class="delegation-card-header">
+            <div>
+              <div class="delegation-id">${d.id}</div>
+              <div class="delegation-scope">${d.scope}</div>
+            </div>
+            ${mdtStatusBadge(d.status)}
+          </div>
+          <div class="delegation-meta">
+            <div class="delegation-meta-item">${isEmisora?'Delegado':'Delegador'}: <strong>${other?.fullname}</strong></div>
+            <div class="delegation-meta-item">Vigencia: <strong>${mdtFormatDate(d.vigencia)}</strong></div>
+            <div class="delegation-meta-item">Rol propio: <strong>${isEmisora?'Delegador':'Delegado'}</strong></div>
+          </div>
+          <button class="btn btn--danger btn--sm" onclick="openRevokeModal('${d.id}')">🚫 Revocar esta delegación</button>`;
+        list.appendChild(div);
+        if (urlId===d.id) setTimeout(()=>{ div.scrollIntoView({behavior:'smooth'}); openRevokeModal(d.id); },500);
+      }
+    }
+
+    render();
+
+    window.openRevokeModal = openRevokeModal;
+
+  })();
+</script>
+</body>
+</html>

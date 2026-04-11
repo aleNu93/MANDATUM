@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Mi perfil</title>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="#" id="brand-link" class="brand__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Mi perfil</div></div>
+    </div>
+    <nav id="main-nav">
+      <!-- Rendered dynamically based on role -->
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <div id="global-msg" class="alert" style="display:none;margin-bottom:16px"></div>
+
+      <div class="grid" style="align-items:start">
+
+        <!-- Identity card -->
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+            <div class="avatar" id="user-avatar" style="width:64px;height:64px;font-size:26px">?</div>
+            <div>
+              <div style="font-size:22px;font-weight:800;color:var(--text)" id="user-name"></div>
+              <div class="small" id="user-email"></div>
+              <div style="margin-top:4px"><span class="badge" id="user-role"></span></div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="panel">
+              <div class="small muted">ID de usuario</div>
+              <div style="font-family:var(--mono);font-size:12px;margin-top:2px" id="user-id"></div>
+            </div>
+            <div class="panel">
+              <div class="small muted">Registro</div>
+              <div style="font-size:14px;margin-top:2px" id="user-created"></div>
+            </div>
+            <div class="panel">
+              <div class="small muted">Clave pública RSA-OAEP</div>
+              <div class="fingerprint-box" id="rsa-pub" style="margin-top:4px"></div>
+            </div>
+            <div class="panel">
+              <div class="small muted">Clave pública ECDSA-P256</div>
+              <div class="fingerprint-box" id="ecdsa-pub" style="margin-top:4px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Biometric status + update -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <!-- Face template -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:4px">Plantilla facial <span class="crypto-tag">RSA-OAEP</span></div>
+            <div class="card-sub">Reconocimiento facial basado en diferencia de píxeles adyacentes (LBP simplificado).</div>
+
+            <div id="face-current" class="panel" style="margin:12px 0">
+              <div class="small muted">Estado</div>
+              <div id="face-status-txt" style="font-weight:700;margin-top:4px"></div>
+            </div>
+
+            <div id="face-update-section">
+              <div class="cam-wrap" style="margin-bottom:10px">
+                <video id="profile-video" autoplay playsinline muted></video>
+                <div class="face-guide"><div class="face-ring"></div><span>Centre su rostro</span></div>
+              </div>
+              <div id="face-msg" class="alert" style="display:none"></div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn--ghost btn--sm" id="btn-cam-toggle">📷 Activar cámara</button>
+                <button class="btn btn--primary" id="btn-update-face" disabled>📸 Actualizar plantilla facial</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Signature template -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:4px">Plantilla de firma <span class="crypto-tag">ECDSA</span></div>
+            <div class="card-sub">Firma manuscrita reducida a cuadrícula 32×32 con binarización adaptativa.</div>
+
+            <div id="sig-current" class="panel" style="margin:12px 0">
+              <div class="small muted">Estado</div>
+              <div id="sig-status-txt" style="font-weight:700;margin-top:4px"></div>
+            </div>
+
+            <div class="sig-wrap" style="margin-bottom:8px">
+              <canvas id="profile-sig" width="500" height="180" class="sig-canvas"></canvas>
+              <span class="sig-hint">Dibuje su firma aquí</span>
+            </div>
+            <div id="sig-msg" class="alert" style="display:none"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn--ghost btn--sm" id="btn-sig-clear">🗑 Limpiar</button>
+              <button class="btn btn--primary" id="btn-update-sig">✍️ Actualizar firma</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Security keys + stats -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px">Estadísticas personales</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="kv-card"><div class="kv-label">Delegaciones emitidas</div><div class="kv-val" id="stat-emit">0</div></div>
+              <div class="kv-card"><div class="kv-label">Delegaciones recibidas</div><div class="kv-val" id="stat-recv">0</div></div>
+              <div class="kv-card"><div class="kv-label">Activas actualmente</div><div class="kv-val" id="stat-active" style="color:var(--success)">0</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px">Seguridad criptográfica</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-size:13px;font-weight:700">RSA-OAEP 2048</div><div class="small">Cifrado facial</div></div>
+                <span class="badge badge--success">✓ Activo</span>
+              </div>
+              <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-size:13px;font-weight:700">ECDSA-P256</div><div class="small">Firma digital</div></div>
+                <span class="badge badge--success">✓ Activo</span>
+              </div>
+              <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-size:13px;font-weight:700">HMAC-SHA256</div><div class="small">OTP de color</div></div>
+                <span class="badge badge--success">✓ Activo</span>
+              </div>
+              <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-size:13px;font-weight:700">PBKDF2-SHA256</div><div class="small">Contraseña (200k iter.)</div></div>
+                <span class="badge badge--success">✓ Activo</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="admin-activity-card">
+            <div class="card-title" style="margin-bottom:10px">Última actividad</div>
+            <div id="activity-list" style="display:flex;flex-direction:column;gap:6px">
+              <p class="small muted">Sin actividad registrada.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="JS/sha256.js"></script>
+  <script src="JS/db.js"></script>
+  <script src="JS/session.js"></script>
+  <script>
+    // Nav based on profile
+    (function(){
+      const _s = MdtSession.get();
+      const isAdmin = _s && _s.role === 'admin';
+      const dashHref = isAdmin ? 'dashboardAdmin.html' : 'dashboardGeneral.html';
+      document.getElementById('brand-link').href = dashHref;
+      const nav = document.getElementById('main-nav');
+      const logout = document.getElementById('btn-logout');
+      if (isAdmin) {
+        nav.innerHTML = `
+          <a class="nav-link" href="dashboardAdmin.html">Dashboard</a>
+          <a class="nav-link" href="admin/usuarios.html">Usuarios</a>
+          <a class="nav-link" href="admin/logs.html">Auditoría</a>
+          <a class="nav-link" href="admin_dashboard.html">Resumen Completo</a>
+          <a class="nav-link primary" href="profile.html">Perfil</a>
+          <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>`;
+      } else {
+        nav.innerHTML = `
+          <a class="nav-link" href="dashboardGeneral.html">Dashboard</a>
+          <a class="nav-link" href="Delegaciones/crear.html">Nueva delegación</a>
+          <a class="nav-link" href="Delegaciones/emitidas.html">Emitidas</a>
+          <a class="nav-link" href="Delegaciones/recibidas.html">Recibidas</a>
+          <a class="nav-link" href="Delegaciones/revocar.html">Revocar</a>
+          <a class="nav-link" href="Delegaciones/usar.html">Usar</a>
+          <a class="nav-link primary" href="profile.html">Perfil</a>
+          <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>`;
+      }
+    })();
+  </script>
+  <script src="JS/facialRecognition.js"></script>
+  <script src="JS/signatureRecognition.js"></script>
+  <script src="JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const session = MdtSession.require();
+    if(!session) throw new Error('not logged');
+    let user = await MdtDB.Users.getById(session.id);
+
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(user.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='auth.html';};
+
+    function showMsg(type,msg){const el=document.getElementById('global-msg');el.className='alert alert-'+type;el.innerHTML=msg;el.style.display='flex';}
+
+    async function render() {
+      user = await MdtDB.Users.getById(session.id);
+      const activityCard = document.getElementById('admin-activity-card');
+  if (user.role !== 'admin') {
+    activityCard.style.display = 'none';}
+      document.getElementById('user-name').textContent = user.fullname;
+      document.getElementById('user-email').textContent = user.email;
+      document.getElementById('user-avatar').textContent = user.fullname[0];
+      document.getElementById('user-id').textContent = user.id;
+      document.getElementById('user-role').textContent = user.role==='admin'?'Administrador':'Usuario';
+      document.getElementById('user-created').textContent = mdtFormatDate(user.createdAt);
+      document.getElementById('rsa-pub').textContent = user.publicKeyRSA.slice(0,64)+'…';
+      document.getElementById('ecdsa-pub').textContent = user.publicKeyECDSA.slice(0,64)+'…';
+
+      const faceEl = document.getElementById('face-status-txt');
+      const sigEl = document.getElementById('sig-status-txt');
+      const faceRec = await MdtDB.FacialDB.getByUser(user.id);
+      const sigRec  = await MdtDB.SignatureDB.getByUser(user.id);
+      if (faceRec?.templateB64) { faceEl.innerHTML='<span style="color:var(--success)">✓ Plantilla registrada</span>'; }
+      else { faceEl.innerHTML='<span style="color:var(--danger)">✗ No registrada — requerida para autenticación</span>'; }
+      if (sigRec?.templateB64) { sigEl.innerHTML='<span style="color:var(--success)">✓ Plantilla registrada</span>'; }
+      else { sigEl.innerHTML='<span style="color:var(--danger)">✗ No registrada — requerida para autenticación</span>'; }
+
+      // Stats
+      await MdtDelegations.checkExpired();
+      const emit = await MdtDelegations.getByDelegador(user.id);
+      const recv = await MdtDelegations.getByDelegado(user.id);
+      document.getElementById('stat-emit').textContent = emit.length;
+      document.getElementById('stat-recv').textContent = recv.length;
+      document.getElementById('stat-active').textContent = [...emit,...recv].filter(d=>d.status==='ACTIVE').length;
+
+      // Recent activity
+      const _profileLogs = await MdtAudit.getAll();
+    const logs = _profileLogs.filter(l=>l.actor===user.id).slice(-5).reverse();
+      const actList = document.getElementById('activity-list');
+      if (logs.length===0) { actList.innerHTML='<p class="small muted">Sin actividad registrada.</p>'; return; }
+      actList.innerHTML='';
+      for (const l of logs) {
+        const div=document.createElement('div');
+        div.className='panel';
+        div.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:8px 10px';
+        div.innerHTML=`<div><div style="font-size:13px;font-weight:600">${l.action.replace(/_/g,' ')}</div>
+          <div class="small muted">${new Date(l.timestamp).toLocaleString('es-CR')}</div></div>
+          ${l.success?'<span class="badge badge--success">OK</span>':'<span class="badge badge--danger">Fallo</span>'}`;
+        actList.appendChild(div);
+      }
+    }
+    render();
+
+    // Camera
+    let cameraStream = null;
+    let cameraOn = false;
+    document.getElementById('btn-cam-toggle').onclick = async () => {
+      if (cameraOn) {
+        if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+        cameraStream=null; cameraOn=false;
+        document.getElementById('btn-cam-toggle').textContent='📷 Activar cámara';
+        document.getElementById('btn-update-face').disabled=true;
+        return;
+      }
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+        document.getElementById('profile-video').srcObject = cameraStream;
+        cameraOn=true;
+        document.getElementById('btn-cam-toggle').textContent='⏹ Detener cámara';
+        document.getElementById('btn-update-face').disabled=false;
+      } catch {
+        showMsg('error','No se pudo acceder a la cámara.');
+      }
+    };
+
+    document.getElementById('btn-update-face').onclick = async () => {
+      const video = document.getElementById('profile-video');
+      const canvas = document.createElement('canvas');
+      canvas.width=video.videoWidth||640; canvas.height=video.videoHeight||480;
+      canvas.getContext('2d').drawImage(video,0,0);
+      const imageData = canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height);
+      const template = MdtFacial.extractTemplate(imageData);
+      await MdtDB.FacialDB.save(user.id, MdtFacial.encode(template));
+      await MdtAudit.log(user.id,'FACE_TEMPLATE_UPDATED',{},true);
+      const msgEl = document.getElementById('face-msg');
+      msgEl.className='alert alert-success'; msgEl.textContent='✓ Plantilla facial actualizada.'; msgEl.style.display='flex';
+      render();
+      if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+      cameraStream=null; cameraOn=false;
+      document.getElementById('btn-cam-toggle').textContent='📷 Activar cámara';
+      document.getElementById('btn-update-face').disabled=true;
+    };
+
+    // Signature
+    const sigCanvas = document.getElementById('profile-sig');
+    const sigCtx = sigCanvas.getContext('2d');
+    sigCtx.fillStyle='#fafcff'; sigCtx.fillRect(0,0,sigCanvas.width,sigCanvas.height);
+    sigCtx.strokeStyle='#0d3b66'; sigCtx.lineWidth=2.8; sigCtx.lineCap='round'; sigCtx.lineJoin='round';
+    let sigDraw=false, sigLX=0, sigLY=0;
+    function getP(e){const r=sigCanvas.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return[(s.clientX-r.left)*(sigCanvas.width/r.width),(s.clientY-r.top)*(sigCanvas.height/r.height)];}
+    sigCanvas.onmousedown=sigCanvas.ontouchstart=(e)=>{e.preventDefault();sigDraw=true;[sigLX,sigLY]=getP(e);};
+    sigCanvas.onmousemove=sigCanvas.ontouchmove=(e)=>{if(!sigDraw)return;e.preventDefault();const[x,y]=getP(e);sigCtx.beginPath();sigCtx.moveTo(sigLX,sigLY);sigCtx.lineTo(x,y);sigCtx.stroke();[sigLX,sigLY]=[x,y];};
+    sigCanvas.onmouseup=sigCanvas.onmouseleave=sigCanvas.ontouchend=()=>sigDraw=false;
+    document.getElementById('btn-sig-clear').onclick=()=>{sigCtx.fillStyle='#fafcff';sigCtx.fillRect(0,0,sigCanvas.width,sigCanvas.height);};
+
+    document.getElementById('btn-update-sig').onclick = async () => {
+      const template = MdtSignature.extractTemplate(sigCanvas);
+      await MdtDB.SignatureDB.save(user.id, MdtSignature.encode(template));
+      await MdtAudit.log(user.id,'SIGNATURE_TEMPLATE_UPDATED',{},true);
+      const msgEl = document.getElementById('sig-msg');
+      msgEl.className='alert alert-success'; msgEl.textContent='✓ Plantilla de firma actualizada.'; msgEl.style.display='flex';
+      render();
+    };
+  })();
+</script>
+</body>
+</html>

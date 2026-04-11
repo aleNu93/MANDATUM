@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Crear delegación</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Nueva delegación</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link primary" href="crear.html">Nueva Delegación</a>
+      <a class="nav-link" href="emitidas.html">Emitidas</a>
+      <a class="nav-link" href="recibidas.html">Recibidas</a>
+      <a class="nav-link" href="revocar.html">Revocar</a>
+      <a class="nav-link" href="usar.html">Usar</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="grid-2" style="align-items:start;gap:20px">
+
+        <!-- Form -->
+        <div class="card">
+          <div class="card-title">Crear nueva delegación</div>
+          <div class="card-sub">Complete los parámetros de la delegación. Se requerirá verificación biométrica de 3 factores para emitirla.</div>
+
+          <div id="create-error" class="alert alert-error" style="display:none"></div>
+          <div id="create-success" class="alert alert-success" style="display:none"></div>
+
+          <!-- Delegate selector -->
+          <div class="form-row">
+            <label>Delegado (usuario receptor)</label>
+            <div id="delegado-selector" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:#fff">
+              <p class="small muted" id="no-users-msg">No hay otros usuarios registrados. Pida a su colega que cree una cuenta primero.</p>
+            </div>
+            <input type="hidden" id="delegado-id"/>
+            <div id="selected-delegado" style="display:none" class="panel" style="margin-top:4px"></div>
+          </div>
+
+          <div class="form-row">
+            <label for="scope">Alcance de la delegación</label>
+            <select id="scope">
+              <option value="Firma de documentos">Firma de documentos</option>
+              <option value="Gestión de delegaciones">Gestión de delegaciones</option>
+              <option value="Acceso a expedientes">Acceso a expedientes</option>
+              <option value="Autorización de pagos">Autorización de pagos</option>
+              <option value="Representación legal">Representación legal</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="vigencia">Vigencia (fecha de expiración)</label>
+            <input type="date" id="vigencia"/>
+          </div>
+
+          <div class="form-row">
+            <label for="justificacion">Justificación</label>
+            <textarea id="justificacion" placeholder="Motivo y contexto de la delegación (requerido)…"></textarea>
+          </div>
+
+          <div style="padding:14px;border-radius:10px;background:#f0f9ff;border:1px solid #bae6fd;margin-bottom:16px">
+            <p class="small" style="color:#0c4a6e;font-weight:700;margin-bottom:6px">Proceso criptográfico al crear:</p>
+            <p class="small" style="color:#0c4a6e;line-height:1.6">
+              1. Se genera un documento de delegación con todos los parámetros.<br/>
+              2. Se calcula <span class="crypto-tag">SHA-256</span> del documento.<br/>
+              3. El hash se firma con su clave privada <span class="crypto-tag">ECDSA-P256</span>.<br/>
+              4. El hash también se cifra con su clave pública <span class="crypto-tag">RSA-OAEP</span> para no repudio.<br/>
+              5. Todo se guarda en el registro de delegaciones.
+            </p>
+          </div>
+
+          <button class="btn btn--primary btn--full" id="btn-create">
+            🔐 Verificar identidad y crear delegación
+          </button>
+        </div>
+
+        <!-- Preview + info -->
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:12px">Vista previa del documento</div>
+            <div id="doc-preview" style="font-family:var(--mono);font-size:12px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px;white-space:pre-wrap;line-height:1.7;color:#475569;min-height:200px">
+Seleccione un delegado y complete el formulario para ver la vista previa del documento que se firmará…</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:10px">Delegaciones emitidas recientes</div>
+            <div id="recent-list" style="display:flex;flex-direction:column;gap:8px">
+              <p class="small muted">Sin delegaciones emitidas aún.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const user = MdtSession.require();
+    if (!user) throw new Error('not logged');
+
+    document.getElementById('btn-logout').onclick = async (e) => {
+      e.preventDefault(); await MdtAudit.log(user.id,'LOGOUT',{},true); MdtSession.clear(); window.location.href='../auth.html';
+    };
+
+    // Set default vigencia (7 days from now)
+    const vigEl = document.getElementById('vigencia');
+    const d7 = new Date(); d7.setDate(d7.getDate()+7);
+    vigEl.min = new Date().toISOString().split('T')[0];
+    vigEl.value = d7.toISOString().split('T')[0];
+
+    // Load users for selector
+    const _allU = await MdtDB.Users.getAll();
+      const allUsers = _allU.filter(u=>u.id!==user.id);
+    const selector = document.getElementById('delegado-selector');
+    if (allUsers.length > 0) {
+      document.getElementById('no-users-msg').style.display='none';
+      selector.style.maxHeight='none';
+      allUsers.forEach(u => {
+        const btn = document.createElement('div');
+        btn.style.cssText='display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .15s';
+        btn.innerHTML=`<div class="avatar" style="width:36px;height:36px;font-size:14px">${u.fullname[0]}</div>
+          <div><div style="font-size:14px;font-weight:600">${u.fullname}</div><div class="small">${u.email}</div></div>`;
+        btn.onclick=()=>{
+          selector.querySelectorAll('div').forEach(b=>b.style.borderColor='transparent');
+          btn.style.borderColor='var(--accent)'; btn.style.background='var(--accent-light)';
+          document.getElementById('delegado-id').value=u.id;
+          updatePreview();
+        };
+        selector.appendChild(btn);
+      });
+    }
+
+    async function updatePreview() {
+      const delegadoId = document.getElementById('delegado-id').value;
+      const scope = document.getElementById('scope').value;
+      const vigencia = document.getElementById('vigencia').value;
+      const just = document.getElementById('justificacion').value;
+      const delegado = await MdtDB.Users.getById(delegadoId);
+      if (!delegadoId) return;
+      const preview = {
+        tipo: 'DELEGACION_DIGITAL',
+        id: 'D_[generado al crear]',
+        delegador: { id: user.id, nombre: user.fullname, email: user.email },
+        delegado: { id: delegadoId, nombre: delegado?.fullname, email: delegado?.email },
+        alcance: scope, vigencia: vigencia,
+        justificacion: just || '[pendiente]',
+        fechaCreacion: new Date().toISOString(),
+        algoritmos: { firma:'ECDSA-P256', cifrado:'RSA-OAEP-2048', hash:'SHA-256' }
+      };
+      document.getElementById('doc-preview').textContent = JSON.stringify(preview, null, 2);
+    }
+
+    ['scope','vigencia','justificacion'].forEach(id => {
+      document.getElementById(id).oninput = updatePreview;
+    });
+
+    // Recent emitidas
+    const _emitidas = await MdtDelegations.getByDelegador(user.id);
+      const emitidas = _emitidas.slice(-3).reverse();
+    if (emitidas.length > 0) {
+      const list = document.getElementById('recent-list');
+      list.innerHTML='';
+      for (const d of emitidas) {
+        const delegado = await MdtDB.Users.getById(d.delegadoId);
+        const div = document.createElement('div');
+        div.className='panel';
+        div.style.display='flex';div.style.justifyContent='space-between';div.style.alignItems='center';
+        div.innerHTML=`<div>
+          <div style="font-size:13px;font-weight:700">${d.scope}</div>
+          <div class="small">→ ${delegado?.fullname||d.delegadoId}</div>
+          <div class="small muted">${mdtFormatDate(d.createdAt)}</div>
+        </div>${mdtStatusBadge(d.status)}`;
+        list.appendChild(div);
+      }
+    }
+
+    document.getElementById('btn-create').onclick = async () => {
+      const delegadoId = document.getElementById('delegado-id').value;
+      const scope = document.getElementById('scope').value;
+      const vigencia = document.getElementById('vigencia').value;
+      const justificacion = document.getElementById('justificacion').value.trim();
+      const errEl = document.getElementById('create-error');
+      const okEl = document.getElementById('create-success');
+      errEl.style.display='none'; okEl.style.display='none';
+
+      if (!delegadoId) { errEl.textContent='Seleccione un delegado'; errEl.style.display='flex'; return; }
+      if (!justificacion) { errEl.textContent='La justificación es requerida'; errEl.style.display='flex'; return; }
+      if (!vigencia) { errEl.textContent='Seleccione una fecha de vigencia'; errEl.style.display='flex'; return; }
+
+      try {
+        await MdtAuthModal.prompt(user.id, 'Verificar identidad para emitir delegación');
+      } catch(e) {
+        errEl.textContent='Verificación cancelada. La delegación no fue creada.'; errEl.style.display='flex'; return;
+      }
+
+      const btn = document.getElementById('btn-create');
+      btn.textContent='Firmando y guardando…'; btn.disabled=true;
+
+      try {
+        const delegation = await MdtDelegations.create({ delegadorId:user.id, delegadoId, scope, vigencia, justificacion });
+        okEl.innerHTML=`✓ Delegación <strong>${delegation.id}</strong> creada y firmada con ECDSA-P256. El delegado deberá aceptarla con autenticación biométrica.`;
+        okEl.style.display='flex';
+        // Update preview with real ID
+        updatePreview();
+        setTimeout(() => { window.location.href='emitidas.html'; }, 2000);
+      } catch(e) {
+        errEl.textContent='Error al crear la delegación: ' + e.message; errEl.style.display='flex';
+      }
+      btn.textContent='🔐 Verificar identidad y crear delegación'; btn.disabled=false;
+    };
+  })();
+</script>
+</body>
+</html>

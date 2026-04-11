@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Delegación digital segura</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <style>
+    /* ── Page-level layout ─────────────────────────────────────────── */
+    /* Override main so index is a normal block scroller, not flex row */
+    /* Single centered column, max 1100px, with side padding */
+/* ── Hero ──────────────────────────────────────────────────────── */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 72px 20px 48px;
+    }
+    .hero-title {
+      font-size: clamp(30px, 5.5vw, 54px);
+      font-weight: 900;
+      color: var(--accent);
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 18px;
+    }
+    .hero-sub {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ── Algorithm pills row ──────────────────────────────────────── */
+    .algo-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 24px 0;
+    }
+    .algo-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* ── How it works flow ────────────────────────────────────────── */
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      margin: 28px 0 8px;
+    }
+    .flow-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+    .flow-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -14px;
+      top: 12px;
+      font-size: 18px;
+      color: var(--muted);
+    }
+    .flow-num {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .flow-label {
+      font-size: 12px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* ── Feature cards grid ───────────────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin: 28px 0;
+    }
+    .feature-card {
+      padding: 24px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .feature-icon  { font-size: 34px; margin-bottom: 10px; }
+    .feature-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+
+    /* ── Stats row ────────────────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin: 8px 0;
+    }
+    .stat-card {
+      background: var(--bg-0);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-val   { font-size: 32px; font-weight: 900; color: var(--accent); }
+    .stat-label { font-size: 12px; color: var(--muted); font-weight: 600;
+                  text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+
+    /* ── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .feature-grid  { grid-template-columns: 1fr 1fr; }
+      .stats-row     { grid-template-columns: 1fr 1fr; }
+      .flow-steps    { grid-template-columns: 1fr; gap: 14px; }
+      .flow-step::after { display: none; }
+    }
+    @media (max-width: 540px) {
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.18),rgba(255,255,255,0.18)),url('/Images/authbackground.png');background-size:cover;background-position:center">
+
+  <div id="splash" class="hidden">
+    <div class="splash__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div>
+    <h2>Mandatum</h2><p>Cargando…</p>
+    <div class="spinner"></div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <a href="index.html" class="brand__logo">
+        <img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/>
+      </a>
+      <div class="brand__title">
+        <h1>Mandatum</h1>
+        <div class="muted">Delegación digital segura</div>
+      </div>
+    </div>
+    <nav>
+      <a class="nav-link" href="auth.html">Iniciar sesión</a>
+      <a class="nav-link primary" href="register.html">Crear cuenta</a>
+    </nav>
+  </header>
+
+  <!-- main.index-main overrides the flex layout from main.css so content is block-centered -->
+  <!-- Full-width hero band with background image -->
+  <section class="hero-band">
+    <div class="hero-band-inner">
+      <div class="hero">
+        <div class="hero-title">Delegación digital<br/>con triple autenticación</div>
+        <p class="hero-sub">
+          Autorice a terceros para actuar en su nombre de forma segura,
+          temporal y con trazabilidad criptográfica completa — sin compartir contraseñas.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn--primary" href="register.html" style="padding:13px 28px;font-size:15px">Comenzar →</a>
+          <a class="btn btn--ghost"   href="auth.html"     style="padding:13px 28px;font-size:15px">Iniciar sesión</a>
+        </div>
+        <div id="session-banner" style="display:none;margin-top:16px" class="alert alert-success"></div>
+      </div>
+
+    </div><!-- end hero-band-inner -->
+  </section><!-- end hero-band -->
+
+  <main>
+    <div class="container">
+
+      <!-- ── Algorithm pills ───────────────────────────────────── -->
+      <div class="algo-row">
+        <div class="algo-pill"><span style="font-size:17px">🔐</span><span>RSA-OAEP 2048</span><span class="badge">Reconocimiento facial</span></div>
+        <div class="algo-pill"><span style="font-size:17px">✒️</span><span>ECDSA-P256</span><span class="badge">Firma de documentos</span></div>
+        <div class="algo-pill"><span style="font-size:17px">🎨</span><span>HMAC-SHA256</span><span class="badge">OTP de color</span></div>
+        <div class="algo-pill"><span style="font-size:17px">🔒</span><span>PBKDF2-SHA256</span><span class="badge">Contraseñas</span></div>
+      </div>
+
+      <!-- ── How it works ──────────────────────────────────────── -->
+      <div class="card" style="margin:8px 0 28px">
+        <div class="card-title" style="text-align:center;margin-bottom:24px">¿Cómo funciona?</div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-label">Registro con<br/>datos biométricos</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-label">Login con<br/>3 factores</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num" style="background:var(--accent-2)">3</div>
+            <div class="flow-label">Crear delegación<br/>+ re-autenticación</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div class="flow-label">Delegado acepta<br/>biométricamente</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">5</div>
+            <div class="flow-label">Ejercer o revocar<br/>con verificación</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Feature cards ─────────────────────────────────────── -->
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <div class="feature-title">No repudio garantizado</div>
+          <p class="small muted">Cada delegación se firma con ECDSA-P256. El firmante no puede negar haber emitido la autorización.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <div class="feature-title">Trazabilidad completa</div>
+          <p class="small muted">Cada acción queda registrada en el log de auditoría con timestamp, actor y resultado.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⏱️</div>
+          <div class="feature-title">Temporal y revocable</div>
+          <p class="small muted">Las delegaciones tienen fecha de expiración y pueden revocarse en cualquier momento con firma criptográfica.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔑</div>
+          <div class="feature-title">Sin compartir credenciales</div>
+          <p class="small muted">El delegado nunca recibe claves del delegador. La autorización es un documento firmado y verificable.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👁️</div>
+          <div class="feature-title">Verificación biométrica</div>
+          <p class="small muted">Reconocimiento facial (LBP) + firma manuscrita (Jaccard) — ejecutado en el navegador, sin servidor externo.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <div class="feature-title">OTP de color dinámico</div>
+          <p class="small muted">Tercer factor de autenticación: desafío visual aleatorio firmado con HMAC-SHA256 único por sesión.</p>
+        </div>
+      </div>
+
+      <!-- ── Live stats ─────────────────────────────────────────── -->
+      <div class="card">
+        <div class="card-title" style="text-align:center;margin-bottom:20px">Estado del sistema</div>
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-val" id="stat-users">0</div>
+            <div class="stat-label">Usuarios</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-del">0</div>
+            <div class="stat-label">Delegaciones</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-active" style="color:var(--success)">0</div>
+            <div class="stat-label">Activas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="stat-logs">0</div>
+            <div class="stat-label">Eventos auditados</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <small class="muted">© <span id="year"></span> Mandatum — Sistema de delegación digital segura</small>
+  </footer>
+
+  <script src="JS/sha256.js"></script>
+  <script src="JS/facialRecognition.js"></script>
+  <script src="JS/signatureRecognition.js"></script>
+  <script src="JS/db.js"></script>
+  <script src="JS/session.js"></script>
+  <script src="JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(() => splash.classList.add('hidden'), 600);
+
+    // Live stats from JSON database via server
+    const users       = await MdtDB.Users.getAll();
+    const delegaciones = await MdtDelegations.getAll();
+    document.getElementById('stat-users').textContent  = users.length;
+    document.getElementById('stat-del').textContent    = delegaciones.length;
+    document.getElementById('stat-active').textContent = delegaciones.filter(d => d.status === 'ACTIVE').length;
+    const _auditAll = await MdtAudit.getAll();
+    document.getElementById('stat-logs').textContent   = _auditAll.length;
+
+    // Active session banner
+    const session = MdtSession.get();
+    if (session) {
+      const banner = document.getElementById('session-banner');
+      banner.innerHTML = `Sesión activa: <strong>${session.fullname}</strong> — <a href="dashboardGeneral.html">Ir al dashboard →</a>`;
+      banner.style.display = 'flex';
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Dashboard</title>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="dashboardGeneral.html" class="brand__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted" id="hdr-sub">Dashboard</div></div>
+    </div>
+    <nav>
+      <a class="nav-link primary" href="dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link" href="Delegaciones/crear.html">Nueva Delegación</a>
+      <a class="nav-link" href="Delegaciones/emitidas.html">Emitidas</a>
+      <a class="nav-link" href="Delegaciones/recibidas.html">Recibidas</a>
+      <a class="nav-link" href="Delegaciones/revocar.html">Revocar</a>
+      <a class="nav-link" href="Delegaciones/usar.html">Usar</a>
+      <a class="nav-link" href="profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- Welcome + KPIs -->
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+          <div class="avatar" id="user-avatar" style="width:52px;height:52px;font-size:20px">?</div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:var(--text)" id="user-name">Cargando…</div>
+            <div class="small" id="user-email"></div>
+          </div>
+          <div style="margin-left:auto">
+            <span id="user-role-badge" class="badge"></span>
+          </div>
+        </div>
+        <div class="kv">
+          <div class="kv-card">
+            <div class="kv-label">Delegaciones emitidas</div>
+            <div class="kv-val" id="kv-emitidas">0</div>
+          </div>
+          <div class="kv-card">
+            <div class="kv-label">Delegaciones recibidas</div>
+            <div class="kv-val" id="kv-recibidas">0</div>
+          </div>
+          <div class="kv-card">
+            <div class="kv-label">Activas totales</div>
+            <div class="kv-val" id="kv-activas" style="color:var(--success)">0</div>
+          </div>
+          <div class="kv-card">
+            <div class="kv-label">Pendientes de aceptar</div>
+            <div class="kv-val" id="kv-pending" style="color:var(--warning)">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+
+        <!-- Quick actions -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">Acciones rápidas</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <a class="btn btn--primary" href="Delegaciones/crear.html">➕ Nueva delegación</a>
+            <a class="btn btn--ghost" href="Delegaciones/recibidas.html">📥 Ver recibidas</a>
+            <a class="btn btn--ghost" href="Delegaciones/emitidas.html">📤 Ver emitidas</a>
+            <a class="btn btn--ghost" href="Delegaciones/revocar.html">🚫 Revocar delegación</a>
+            <a class="btn btn--ghost" href="Delegaciones/usar.html">🔓 Usar delegación</a>
+          </div>
+        </div>
+
+        <!-- Recent activity — hidden for regular users -->
+        <div class="card col-span-2" id="activity-section" style="display:none">
+          <div class="card-title" style="margin-bottom:14px">Actividad reciente</div>
+          <div class="scroll-x">
+            <table class="table" id="activity-table">
+              <thead><tr><th>Hora</th><th>Evento</th><th>Detalle</th><th>Estado</th></tr></thead>
+              <tbody id="activity-body">
+                <tr><td colspan="4" class="muted" style="text-align:center;padding:24px">No hay actividad registrada</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pending delegations to accept -->
+        <div class="card col-span-2" id="pending-section" style="display:none">
+          <div class="card-title" style="margin-bottom:4px">⚠️ Delegaciones pendientes de aceptar</div>
+          <div class="card-sub">Estas delegaciones requieren su confirmación biométrica.</div>
+          <div id="pending-list" style="display:flex;flex-direction:column;gap:10px;margin-top:12px"></div>
+        </div>
+
+        <!-- Security info -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">Seguridad de la cuenta</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="panel" style="display:flex;align-items:center;gap:10px">
+              <span>🔑</span><div><div style="font-size:13px;font-weight:700">RSA-OAEP (2048 bits)</div><div class="small">Cifrado facial</div></div>
+              <span style="margin-left:auto" class="badge badge--success">Activo</span>
+            </div>
+            <div class="panel" style="display:flex;align-items:center;gap:10px">
+              <span>✒️</span><div><div style="font-size:13px;font-weight:700">ECDSA-P256</div><div class="small">Firma de delegaciones</div></div>
+              <span style="margin-left:auto" class="badge badge--success">Activo</span>
+            </div>
+            <div class="panel" style="display:flex;align-items:center;gap:10px">
+              <span>🎨</span><div><div style="font-size:13px;font-weight:700">HMAC-SHA256</div><div class="small">OTP de color</div></div>
+              <span style="margin-left:auto" class="badge badge--success">Activo</span>
+            </div>
+            <div class="panel" style="display:flex;align-items:center;gap:10px">
+              <span>📸</span><div><div style="font-size:13px;font-weight:700">Plantilla facial</div><div class="small">LBP 256 bits</div></div>
+              <span style="margin-left:auto" class="badge" id="face-status-badge">—</span>
+            </div>
+            <div class="panel" style="display:flex;align-items:center;gap:10px">
+              <span>✍️</span><div><div style="font-size:13px;font-weight:700">Plantilla de firma</div><div class="small">Jaccard 1024 bits</div></div>
+              <span style="margin-left:auto" class="badge" id="sig-status-badge">—</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+  <script src="JS/sha256.js"></script>
+  <script src="JS/db.js"></script>
+  <script src="JS/session.js"></script>
+  <script>
+    // Redirect admin immediately to their own dashboard
+    (function(){
+      const _s = MdtSession.get();
+      if (_s && _s.role === 'admin') {
+        window.location.replace('dashboardAdmin.html');
+      }
+    })();
+  </script>
+  <script src="JS/facialRecognition.js"></script>
+  <script src="JS/signatureRecognition.js"></script>
+  <script src="JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(() => splash.classList.add('hidden'), 600);
+
+    const user = MdtSession.require();
+    if (!user) throw new Error('not logged in');
+
+    document.getElementById('user-name').textContent = user.fullname;
+    document.getElementById('user-email').textContent = user.email;
+    document.getElementById('user-avatar').textContent = user.fullname[0];
+    document.getElementById('hdr-sub').textContent = 'Bienvenido, ' + user.fullname.split(' ')[0];
+    const roleBadge = document.getElementById('user-role-badge');
+    if (user.role === 'admin') {
+      roleBadge.textContent = '🛡️ Administrador';
+      roleBadge.className = 'badge badge--success';
+    } else {
+      roleBadge.textContent = 'Usuario';
+      roleBadge.className = 'badge';
+    }
+
+    // Face/sig status — from separate DB files
+    const faceBadge = document.getElementById('face-status-badge');
+    const sigBadge  = document.getElementById('sig-status-badge');
+    const faceRec   = await MdtDB.FacialDB.getByUser(user.id);
+    const sigRec    = await MdtDB.SignatureDB.getByUser(user.id);
+    if (faceRec) { faceBadge.textContent='Registrada'; faceBadge.className='badge badge--success'; }
+    else { faceBadge.textContent='Pendiente'; faceBadge.className='badge badge--warning'; }
+    if (sigRec) { sigBadge.textContent='Registrada'; sigBadge.className='badge badge--success'; }
+    else { sigBadge.textContent='Pendiente'; sigBadge.className='badge badge--warning'; }
+
+    // KPIs
+    await MdtDelegations.checkExpired();
+    const emitidas = await MdtDelegations.getByDelegador(user.id);
+    const recibidas = await MdtDelegations.getByDelegado(user.id);
+    const allMy = [...emitidas, ...recibidas];
+    document.getElementById('kv-emitidas').textContent = emitidas.length;
+    document.getElementById('kv-recibidas').textContent = recibidas.length;
+    document.getElementById('kv-activas').textContent = allMy.filter(d=>d.status==='ACTIVE').length;
+    const pending = recibidas.filter(d=>d.status==='WAITING_ACCEPT');
+    document.getElementById('kv-pending').textContent = pending.length;
+
+    // Pending list
+    if (pending.length > 0) {
+      document.getElementById('pending-section').style.display='block';
+      const list = document.getElementById('pending-list');
+      for (const d of pending) {
+        const delegador = await MdtDB.Users.getById(d.delegadorId);
+        const div = document.createElement('div');
+        div.className='delegation-card';
+        div.innerHTML=`
+          <div class="delegation-card-header">
+            <div><div class="delegation-id">${d.id}</div><div class="delegation-scope">${d.scope}</div></div>
+            ${mdtStatusBadge(d.status)}
+          </div>
+          <div class="delegation-meta">
+            <div class="delegation-meta-item">De: <strong>${delegador?.fullname||d.delegadorId}</strong></div>
+            <div class="delegation-meta-item">Hasta: <strong>${mdtFormatDate(d.vigencia)}</strong></div>
+          </div>
+          <a class="btn btn--success btn--sm" href="Delegaciones/recibidas.html">Revisar y aceptar →</a>`;
+        list.appendChild(div);
+      }
+    }
+
+    // Recent audit log
+    const _allLogs = await MdtAudit.getAll();
+    const logs = _allLogs.filter(l=>l.actor===user.id).slice(-8).reverse();
+    if (logs.length > 0) {
+      const tbody = document.getElementById('activity-body');
+      tbody.innerHTML = '';
+      for (const l of logs) {
+        const tr = document.createElement('tr');
+        const detail = (() => { try { const d=JSON.parse(l.detail); return d.id||d.email||JSON.stringify(d).slice(0,40); } catch{return l.detail||'—';} })();
+        tr.innerHTML=`<td class="small">${new Date(l.timestamp).toLocaleString('es-CR')}</td>
+          <td style="font-weight:600">${l.action.replace(/_/g,' ')}</td>
+          <td class="small muted">${detail}</td>
+          <td>${l.success?'<span class="badge badge--success">OK</span>':'<span class="badge badge--danger">Fallo</span>'}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    document.getElementById('btn-logout').onclick = async (e) => {
+      e.preventDefault();
+      await MdtAudit.log(user.id,'LOGOUT',{},true);
+      MdtSession.clear();
+      window.location.href='auth.html';
+    };
+  })();
+</script>
+</body>
+</html>

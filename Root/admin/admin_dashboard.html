@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Administración</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Panel de administración</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link" href="usuarios.html">Usuarios</a>
+      <a class="nav-link" href="logs.html">Auditoría</a> 
+      <a class="nav-link primary" href="admin_dashboard.html">Resumen Completo</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- Global KPIs -->
+      <div class="kv" style="margin-bottom:16px">
+        <div class="kv-card"><div class="kv-label">Usuarios registrados</div><div class="kv-val" id="kv-users">0</div></div>
+        <div class="kv-card"><div class="kv-label">Total delegaciones</div><div class="kv-val" id="kv-total">0</div></div>
+        <div class="kv-card"><div class="kv-label">Activas</div><div class="kv-val" id="kv-active" style="color:var(--success)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Pendientes</div><div class="kv-val" id="kv-pend" style="color:var(--warning)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Revocadas</div><div class="kv-val" id="kv-revok" style="color:var(--danger)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Eventos en auditoría</div><div class="kv-val" id="kv-logs">0</div></div>
+      </div>
+
+      <div class="grid">
+
+        <!-- Users -->
+        <div class="card col-span-3">
+          <div class="card-title" style="margin-bottom:12px">Usuarios registrados</div>
+          <div class="scroll-x">
+            <table class="table" id="users-table">
+              <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Facial</th><th>Firma</th><th>Clave RSA</th><th>Clave ECDSA</th><th>Registro</th></tr></thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- All delegations -->
+        <div class="card col-span-3">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="card-title">Todas las delegaciones</div>
+            <select id="del-filter" style="width:160px">
+              <option value="">Todos los estados</option>
+              <option value="ACTIVE">Activas</option>
+              <option value="WAITING_ACCEPT">Pendientes</option>
+              <option value="REVOKED">Revocadas</option>
+              <option value="EXPIRED">Expiradas</option>
+            </select>
+          </div>
+          <div class="scroll-x">
+            <table class="table">
+              <thead><tr><th>ID</th><th>Delegador</th><th>Delegado</th><th>Alcance</th><th>Creada</th><th>Vigencia</th><th>Estado</th><th>Firma ECDSA</th></tr></thead>
+              <tbody id="del-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Full audit log -->
+        <div class="card col-span-3">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="card-title">Registro de auditoría</div>
+            <button class="btn btn--ghost btn--sm" id="export-btn">⬇ Exportar JSON</button>
+          </div>
+          <div class="scroll-x">
+            <table class="table">
+              <thead><tr><th>Timestamp</th><th>Actor</th><th>Acción</th><th>Detalle</th><th>Resultado</th></tr></thead>
+              <tbody id="audit-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+    <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const user = MdtSession.requireAdmin();
+    if(!user) throw new Error('not logged');
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(user.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='../auth.html';};
+
+    await MdtDelegations.checkExpired();
+
+    const users = await MdtDB.Users.getAll();
+    const delegaciones = await MdtDelegations.getAll();
+    const logs = await MdtAudit.getAll();
+
+    // KPIs
+    document.getElementById('kv-users').textContent=users.length;
+    document.getElementById('kv-total').textContent=delegaciones.length;
+    document.getElementById('kv-active').textContent=delegaciones.filter(d=>d.status==='ACTIVE').length;
+    document.getElementById('kv-pend').textContent=delegaciones.filter(d=>d.status==='WAITING_ACCEPT').length;
+    document.getElementById('kv-revok').textContent=delegaciones.filter(d=>d.status==='REVOKED').length;
+    document.getElementById('kv-logs').textContent=logs.length;
+
+    // Users table
+    const ubody = document.getElementById('users-body');
+    if(users.length===0) ubody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">Sin usuarios</td></tr>';
+    for (const u of users) {
+      const faceRec = await MdtDB.FacialDB.getByUser(u.id);
+      const sigRec  = await MdtDB.SignatureDB.getByUser(u.id);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family:var(--mono);font-size:11px">${u.id.slice(0,16)}…</td>
+        <td style="font-weight:600">${u.fullname}</td>
+        <td class="small">${u.email}</td>
+        <td>${faceRec ? '<span class="badge badge--success">✓</span>' : '<span class="badge badge--warning">✗</span>'}</td>
+        <td>${sigRec  ? '<span class="badge badge--success">✓</span>' : '<span class="badge badge--warning">✗</span>'}</td>
+        <td class="small" style="font-family:var(--mono)">${u.publicKeyRSA.slice(0,24)}…</td>
+        <td class="small" style="font-family:var(--mono)">${u.publicKeyECDSA.slice(0,24)}…</td>
+        <td class="small">${mdtFormatDate(u.createdAt)}</td>`;
+      ubody.appendChild(tr);
+    }
+
+    // Delegations table
+    async function renderDel(filter='') {
+      let del = filter ? delegaciones.filter(d=>d.status===filter) : delegaciones;
+      del=[...del].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      const tbody=document.getElementById('del-body');
+      if(del.length===0){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">Sin delegaciones</td></tr>';return;}
+      tbody.innerHTML='';
+      for (const d of del) {
+        const delegador=await MdtDB.Users.getById(d.delegadorId);
+        const delegado=await MdtDB.Users.getById(d.delegadoId);
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td style="font-family:var(--mono);font-size:11px">${d.id}</td>
+          <td class="small">${delegador?.fullname||d.delegadorId}</td>
+          <td class="small">${delegado?.fullname||d.delegadoId}</td>
+          <td>${d.scope}</td>
+          <td class="small">${mdtFormatDate(d.createdAt)}</td>
+          <td class="small">${mdtFormatDate(d.vigencia)}</td>
+          <td>${mdtStatusBadge(d.status)}</td>
+          <td><span class="badge badge--success" title="${d.ecdsaSignature?.slice(0,30)}…">✓ ECDSA firmada</span></td>`;
+        tbody.appendChild(tr);
+      }
+    }
+    document.getElementById('del-filter').onchange=(e)=>renderDel(e.target.value);
+    renderDel();
+
+    // Audit table
+    const tbody=document.getElementById('audit-body');
+    const sortedLogs=[...logs].reverse();
+    if(sortedLogs.length===0) tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Sin eventos</td></tr>';
+    for (const l of sortedLogs) {
+      const actor=await MdtDB.Users.getById(l.actor);
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td class="small" style="font-family:var(--mono)">${new Date(l.timestamp).toLocaleString('es-CR')}</td>
+        <td class="small">${actor?.fullname||l.actor||'sistema'}</td>
+        <td style="font-weight:600;font-size:13px">${l.action.replace(/_/g,' ')}</td>
+        <td class="small muted" style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${l.detail||'—'}</td>
+        <td>${l.success?'<span class="badge badge--success">OK</span>':'<span class="badge badge--danger">Fallo</span>'}</td>`;
+      tbody.appendChild(tr);
+    }
+
+    // Export
+    document.getElementById('export-btn').onclick=()=>{
+      const data={exportedAt:new Date().toISOString(),users:users.map(u=>({...u,faceTemplate:'[REDACTED]',signatureTemplate:'[REDACTED]'})),delegaciones,auditLog:logs};
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mandatum-export-'+Date.now()+'.json';a.click();
+    };
+  })();
+</script>
+</body>
+</html>

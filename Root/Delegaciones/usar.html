@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Usar delegación</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Usar delegación</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link" href="crear.html">Nueva Delegación</a>
+      <a class="nav-link" href="emitidas.html">Emitidas</a>
+      <a class="nav-link " href="recibidas.html">Recibidas</a>
+      <a class="nav-link" href="revocar.html">Revocar</a>
+      <a class="nav-link primary" href="usar.html">Usar</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div id="global-msg" class="alert" style="display:none;margin-bottom:16px"></div>
+
+      <!-- Active delegations received -->
+      <div class="card" id="active-card">
+        <div class="card-title" style="margin-bottom:4px">✅ Delegaciones activas disponibles</div>
+        <div class="card-sub">Estas delegaciones han sido aceptadas y están vigentes. Para ejercerlas, debe volver a verificar su identidad.</div>
+
+        <div id="active-list" style="display:flex;flex-direction:column;gap:16px;margin-top:16px">
+          <p class="small muted">No tiene delegaciones activas disponibles.</p>
+        </div>
+      </div>
+
+      <!-- Usage document panel (shown when a delegation is used) -->
+      <div id="use-panel" class="card" style="display:none;margin-top:16px">
+        <div class="card-title" style="color:var(--success)">🔓 Delegación ejercida exitosamente</div>
+        <div class="card-sub">La siguiente acción se ejecutó bajo la autoridad delegada verificada:</div>
+        <div id="use-doc" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const user = MdtSession.require();
+    if(!user) throw new Error('not logged');
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(user.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='../auth.html';};
+
+    await MdtDelegations.checkExpired();
+
+    function showMsg(type,msg){const el=document.getElementById('global-msg');el.className='alert alert-'+type;el.innerHTML=msg;el.style.display='flex';}
+
+    async function useDelegation(id) {
+      const d = await MdtDelegations.getById(id);
+      if (!d||d.status!=='ACTIVE') { showMsg('error','Esta delegación no está activa'); return; }
+
+      showMsg('info','Iniciando verificación biométrica para ejercer la delegación…');
+      try {
+        await MdtAuthModal.prompt(user.id, 'Verificar identidad para ejercer delegación');
+      } catch { showMsg('error','Verificación cancelada.'); return; }
+
+      // Verify the delegator's ECDSA signature before proceeding
+      const delegador = await MdtDB.Users.getById(d.delegadorId);
+      const docPayload = JSON.stringify({
+        id:d.id,delegadorId:d.delegadorId,delegadorNombre:d.delegadorNombre,
+        delegadoId:d.delegadoId,delegadoNombre:d.delegadoNombre,
+        scope:d.scope,vigencia:d.vigencia,justificacion:d.justificacion,createdAt:d.createdAt
+      });
+      const sigValid = await MdtCrypto.ecdsaVerify(delegador.publicKeyECDSA, docPayload, d.ecdsaSignature);
+
+      if (!sigValid) { showMsg('error','✗ Firma ECDSA inválida — el documento pudo ser alterado. Acción cancelada.'); return; }
+
+      // Decrypt the encrypted hash to verify RSA-OAEP layer
+      const privKeys = await MdtDB.Keys.get(delegador.id);
+      let rsaOk = false;
+      if (privKeys) {
+        try {
+          const decryptedHash = await MdtCrypto.rsaDecrypt(privKeys.rsaPriv, d.encryptedHash);
+          const expectedHash = await MdtCrypto.sha256(docPayload);
+          rsaOk = decryptedHash === expectedHash;
+        } catch {}
+      }
+
+      await MdtAudit.log(user.id,'DELEGATION_USED',{id,scope:d.scope,sigValid,rsaOk},true);
+
+      const useToken = await MdtCrypto.sha256(id + user.id + Date.now());
+      const useDoc = {
+        evento: 'DELEGACION_EJERCIDA',
+        tokenUso: useToken.slice(0,32),
+        delegacionId: d.id,
+        alcance: d.scope,
+        delegador: d.delegadorNombre,
+        delegado: d.delegadoNombre,
+        timestamp: new Date().toISOString(),
+        verificaciones: {
+          biometricaDelegado: '✓ Facial + Firma + Color OTP',
+          firmaECDSA: sigValid ? '✓ Válida' : '✗ Inválida',
+          cifradoRSA: rsaOk ? '✓ Hash descifrado coincide' : privKeys ? '✗ Fallo' : '(clave privada del delegador no disponible en esta sesión)'
+        }
+      };
+
+      document.getElementById('use-panel').style.display='block';
+      document.getElementById('use-doc').innerHTML=`
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="grid-2">
+            <div class="panel"><div class="small muted">ID delegación</div><div style="font-family:var(--mono);font-size:12px">${d.id}</div></div>
+            <div class="panel"><div class="small muted">Alcance ejercido</div><div style="font-weight:700">${d.scope}</div></div>
+            <div class="panel"><div class="small muted">Delegador</div><div>${d.delegadorNombre}</div></div>
+            <div class="panel"><div class="small muted">Token de uso</div><div class="fingerprint-box">${useToken.slice(0,32)}…</div></div>
+          </div>
+          <div class="panel" style="background:#f0fdf4;border-color:#bbf7d0">
+            <div class="small muted" style="margin-bottom:6px">Verificaciones completadas:</div>
+            <div class="small" style="line-height:1.8">
+              🔐 Biometría (3 factores): ${useDoc.verificaciones.biometricaDelegado}<br/>
+              ✒️ Firma ECDSA-P256: ${useDoc.verificaciones.firmaECDSA}<br/>
+              🔑 Cifrado RSA-OAEP: ${useDoc.verificaciones.cifradoRSA}
+            </div>
+          </div>
+          <div class="panel"><div class="small muted" style="margin-bottom:4px">Documento de uso (JSON firmado)</div>
+            <div class="fingerprint-box">${JSON.stringify(useDoc,null,2)}</div>
+          </div>
+        </div>`;
+      showMsg('success',`✓ Delegación ejercida. Token de uso: <code>${useToken.slice(0,20)}…</code>`);
+    }
+
+    const activeList = document.getElementById('active-list');
+    const _allRecv = await MdtDelegations.getByDelegado(user.id);
+    const activas = _allRecv.filter(d=>d.status==='ACTIVE');
+
+    // Check if URL has ?id=
+    const urlId = new URLSearchParams(window.location.search).get('id');
+
+    window.useDelegation = useDelegation;
+
+    if (activas.length===0) {
+      // check if there's a specific id requested
+    } else {
+      activeList.innerHTML='';
+      for (const d of activas) {
+        const delegador=await MdtDB.Users.getById(d.delegadorId);
+        const div=document.createElement('div');
+        div.className='delegation-card';
+        div.style.borderLeft='4px solid var(--success)';
+        div.innerHTML=`
+          <div class="delegation-card-header">
+            <div><div class="delegation-id">${d.id}</div><div class="delegation-scope">${d.scope}</div></div>
+            ${mdtStatusBadge(d.status)}
+          </div>
+          <div class="delegation-meta">
+            <div class="delegation-meta-item">De: <strong>${delegador?.fullname}</strong></div>
+            <div class="delegation-meta-item">Vigente hasta: <strong>${mdtFormatDate(d.vigencia)}</strong></div>
+            <div class="delegation-meta-item">Aceptada: <strong>${mdtFormatDate(d.acceptedAt)}</strong></div>
+          </div>
+          <div class="panel" style="background:#f8fafc">
+            <div class="small muted" style="margin-bottom:4px">Justificación original</div>
+            <p class="small">${d.justificacion}</p>
+          </div>
+          <div style="padding:10px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;margin-bottom:4px">
+            <p class="small" style="color:#0c4a6e">Para ejercer esta delegación, se verificará su identidad con autenticación de 3 factores y se validará la firma <span class="crypto-tag">ECDSA-P256</span> del delegador.</p>
+          </div>
+          <button class="btn btn--primary" onclick="useDelegation('${d.id}')">🔓 Ejercer esta delegación</button>`;
+        activeList.appendChild(div);
+        if (urlId===d.id) {
+          setTimeout(()=>div.scrollIntoView({behavior:'smooth'}),400);
+        }
+      }
+    }
+  
+})();
+</script>
+</body>
+</html>

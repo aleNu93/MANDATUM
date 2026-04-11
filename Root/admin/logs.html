@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Registro de auditoría</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Registro de auditoría</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link" href="usuarios.html">Usuarios</a>
+      <a class="nav-link primary" href="logs.html">Auditoría</a> 
+      <a class="nav-link" href="admin_dashboard.html">Resumen Completo</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- KPIs -->
+      <div class="kv" style="margin-bottom:16px">
+        <div class="kv-card"><div class="kv-label">Total eventos</div><div class="kv-val" id="kv-total">0</div></div>
+        <div class="kv-card"><div class="kv-label">Exitosos</div><div class="kv-val" id="kv-ok" style="color:var(--success)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Fallidos</div><div class="kv-val" id="kv-fail" style="color:var(--danger)">0</div></div>
+        <div class="kv-card"><div class="kv-label">Logins exitosos</div><div class="kv-val" id="kv-logins">0</div></div>
+        <div class="kv-card"><div class="kv-label">Delegaciones creadas</div><div class="kv-val" id="kv-created">0</div></div>
+        <div class="kv-card"><div class="kv-label">Revocaciones</div><div class="kv-val" id="kv-revoked">0</div></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div class="card-title">Registro de auditoría</div>
+            <div class="card-sub">Log inmutable de todas las acciones del sistema. Cada entrada tiene timestamp, actor, acción y resultado.</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn--ghost btn--sm" id="btn-export-json">⬇ JSON</button>
+            <button class="btn btn--ghost btn--sm" id="btn-export-csv">⬇ CSV</button>
+            <button class="btn btn--danger btn--sm" id="btn-clear">🗑 Limpiar</button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid" style="margin-bottom:16px">
+          <div class="form-row" style="margin:0"><label>Usuario</label>
+            <select id="filter-user">
+              <option value="">Todos los usuarios</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin:0"><label>Acción</label>
+            <select id="filter-action">
+              <option value="">Todas las acciones</option>
+              <option value="LOGIN">Login</option>
+              <option value="DELEGATION">Delegaciones</option>
+              <option value="AUTH">Autenticación biométrica</option>
+              <option value="TEMPLATE">Plantillas biométricas</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin:0"><label>Resultado</label>
+            <select id="filter-result">
+              <option value="">Todos</option>
+              <option value="ok">Solo exitosos</option>
+              <option value="fail">Solo fallidos</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+          <span class="badge" id="showing-badge">0 eventos</span>
+          <button class="btn btn--ghost btn--sm" id="btn-oldest">↕ Más antiguos primero</button>
+        </div>
+
+        <div class="scroll-x">
+          <table class="table">
+            <thead>
+              <tr><th>Timestamp</th><th>Actor</th><th>Acción</th><th>Detalle</th><th>Resultado</th></tr>
+            </thead>
+            <tbody id="log-body"></tbody>
+          </table>
+        </div>
+
+        <div id="pagination" style="display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+    <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const session = MdtSession.requireAdmin();
+    if(!session) throw new Error('not logged');
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(session.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='../auth.html';};
+
+    const PAGE_SIZE = 25;
+    let currentPage = 1;
+    let newestFirst = true;
+    let allLogs = await MdtAudit.getAll();
+    const users = await MdtDB.Users.getAll();
+
+    // Populate user filter
+    const userSelect = document.getElementById('filter-user');
+    users.forEach(u=>{
+      const opt=document.createElement('option');
+      opt.value=u.id; opt.textContent=u.fullname+' ('+u.email+')';
+      userSelect.appendChild(opt);
+    });
+
+    // KPIs
+    document.getElementById('kv-total').textContent=allLogs.length;
+    document.getElementById('kv-ok').textContent=allLogs.filter(l=>l.success).length;
+    document.getElementById('kv-fail').textContent=allLogs.filter(l=>!l.success).length;
+    document.getElementById('kv-logins').textContent=allLogs.filter(l=>l.action==='LOGIN_SUCCESS').length;
+    document.getElementById('kv-created').textContent=allLogs.filter(l=>l.action==='DELEGATION_CREATED').length;
+    document.getElementById('kv-revoked').textContent=allLogs.filter(l=>l.action==='DELEGATION_REVOKED').length;
+
+    function getFiltered() {
+      let logs = [...allLogs];
+      const userFilter = document.getElementById('filter-user').value;
+      const actionFilter = document.getElementById('filter-action').value;
+      const resultFilter = document.getElementById('filter-result').value;
+      if (userFilter) logs=logs.filter(l=>l.actor===userFilter);
+      if (actionFilter) logs=logs.filter(l=>l.action.includes(actionFilter));
+      if (resultFilter==='ok') logs=logs.filter(l=>l.success);
+      if (resultFilter==='fail') logs=logs.filter(l=>!l.success);
+      logs.sort((a,b)=>newestFirst?new Date(b.timestamp)-new Date(a.timestamp):new Date(a.timestamp)-new Date(b.timestamp));
+      return logs;
+    }
+
+    async function render() {
+      const filtered = getFiltered();
+      const total = filtered.length;
+      const pages = Math.ceil(total/PAGE_SIZE);
+      if (currentPage>pages) currentPage=Math.max(1,pages);
+      const slice = filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+
+      document.getElementById('showing-badge').textContent=`${total} eventos (página ${currentPage}/${Math.max(1,pages)})`;
+
+      const tbody=document.getElementById('log-body');
+      if(slice.length===0){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No hay eventos que coincidan con los filtros.</td></tr>';
+        document.getElementById('pagination').innerHTML='';return;}
+
+      tbody.innerHTML='';
+      for (const l of slice) {
+        const actor=await MdtDB.Users.getById(l.actor);
+        const detail=(()=>{try{const d=JSON.parse(l.detail);return JSON.stringify(d);}catch{return l.detail||'—';}})();
+        const tr=document.createElement('tr');
+        tr.style.background=l.success?'':'rgba(220,38,38,0.03)';
+        tr.innerHTML=`
+          <td style="font-family:var(--mono);font-size:11px;white-space:nowrap">${new Date(l.timestamp).toLocaleString('es-CR')}</td>
+          <td><div style="font-size:13px;font-weight:600">${actor?.fullname||l.actor||'sistema'}</div><div class="small">${actor?.email||''}</div></td>
+          <td style="font-weight:700;font-size:13px;white-space:nowrap">${l.action.replace(/_/g,' ')}</td>
+          <td class="small muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${detail}">${detail}</td>
+          <td style="white-space:nowrap">${l.success?'<span class="badge badge--success">✓ OK</span>':'<span class="badge badge--danger">✗ Fallo</span>'}</td>`;
+        tbody.appendChild(tr);
+      }
+
+      // Pagination
+      const pag=document.getElementById('pagination');
+      pag.innerHTML='';
+      if(pages<=1)return;
+      for(let i=1;i<=pages;i++){
+        const btn=document.createElement('button');
+        btn.className='btn btn--ghost btn--sm';
+        btn.textContent=i;
+        if(i===currentPage)btn.style.background='var(--accent)';btn.style.color=i===currentPage?'#fff':'';
+        btn.onclick=()=>{currentPage=i;render();};
+        pag.appendChild(btn);
+      }
+    }
+
+    ['filter-user','filter-action','filter-result'].forEach(id=>{
+      document.getElementById(id).onchange=()=>{currentPage=1;render();};
+    });
+
+    document.getElementById('btn-oldest').onclick=()=>{
+      newestFirst=!newestFirst;
+      document.getElementById('btn-oldest').textContent=newestFirst?'↕ Más antiguos primero':'↕ Más recientes primero';
+      render();
+    };
+
+    render();
+
+    // Export
+    document.getElementById('btn-export-json').onclick=async()=>{
+      const data={exportedAt:new Date().toISOString(),logs:getFiltered()};
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mandatum-audit-'+Date.now()+'.json';a.click();
+    };
+
+    document.getElementById('btn-export-csv').onclick=async ()=>{
+      const logs=getFiltered();
+      const header='timestamp,actor,action,detail,success\n';
+      // Build actor email map first (can't await inside .map)
+      const actorEmails = {};
+      for (const l of logs) {
+        if (l.actor && !actorEmails[l.actor]) {
+          const u = await MdtDB.Users.getById(l.actor);
+          actorEmails[l.actor] = u?.email || l.actor || '';
+        }
+      }
+      const rows = logs.map(l =>
+        `"${l.timestamp}","${actorEmails[l.actor]||l.actor||''}","${l.action}","${(l.detail||'').replace(/"/g,'""')}","${l.success}"`
+      ).join('\n');
+      const blob=new Blob([header+rows],{type:'text/csv'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mandatum-audit-'+Date.now()+'.csv';a.click();
+    };
+
+    document.getElementById('btn-clear').onclick=async ()=>{
+      if(!confirm('¿Eliminar TODO el registro de auditoría? Esta acción no se puede deshacer.'))return;
+      await fetch('/api/db/auditDB', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify([])
+      });
+      allLogs=[];
+      render();
+    };
+  })();
+</script>
+</body>
+</html>

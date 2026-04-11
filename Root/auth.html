@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Iniciar sesión</title>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.15),rgba(255,255,255,0.15)),var(--auth-bg);background-size:cover;background-position:center">
+  <div id="splash">
+    <div class="splash__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div>
+    <h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <a href="auth.html" class="brand__logo"><img src="Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Plataforma de delegación digital</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="register.html">Crear cuenta</a>
+    </nav>
+  </header>
+
+  <main style="align-items:center">
+    <div class="grid-2" style="width:100%;max-width:900px;align-items:start;gap:32px">
+
+        <section class="card">
+          <h2 class="h1">Bienvenido a Mandatum</h2>
+          <p class="muted" style="margin:8px 0 20px">Acceda con sus credenciales institucionales. El sistema aplicará autenticación de tres factores para garantizar su identidad.</p>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="panel" style="display:flex;gap:12px;align-items:center">
+              <span style="font-size:22px">🔐</span>
+              <div><div style="font-weight:700;font-size:14px">Factor 1 — Reconocimiento facial</div><div class="small">Algoritmo de diferencia de píxeles + <span class="crypto-tag">RSA-OAEP</span></div></div>
+            </div>
+            <div class="panel" style="display:flex;gap:12px;align-items:center">
+              <span style="font-size:22px">✍️</span>
+              <div><div style="font-weight:700;font-size:14px">Factor 2 — Firma manuscrita</div><div class="small">Similitud de Jaccard + <span class="crypto-tag">ECDSA-P256</span></div></div>
+            </div>
+            <div class="panel" style="display:flex;gap:12px;align-items:center">
+              <span style="font-size:22px">🎨</span>
+              <div><div style="font-weight:700;font-size:14px">Factor 3 — OTP de color</div><div class="small">Desafío visual aleatorio + <span class="crypto-tag">HMAC-SHA256</span></div></div>
+            </div>
+          </div>
+
+          <div id="demo-users" style="margin-top:20px;display:none">
+            <p class="small" style="font-weight:700;color:var(--text);margin-bottom:8px">Usuarios registrados (demo):</p>
+            <div id="demo-list" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </section>
+
+        <aside>
+          <div class="card">
+            <h2 class="h1" style="margin-bottom:16px">Iniciar sesión</h2>
+
+            <div id="login-error" class="alert alert-error" style="display:none"></div>
+            <div id="login-info" class="alert alert-info" style="display:none"></div>
+
+            <div class="form-row">
+              <label for="email">Correo institucional</label>
+              <input id="email" type="email" autocomplete="email" placeholder="usuario@empresa.com"/>
+            </div>
+            <div class="form-row">
+              <label for="password">Contraseña</label>
+              <input id="password" type="password" autocomplete="current-password"/>
+            </div>
+
+            <div style="margin-top:6px">
+              <button class="btn btn--primary btn--full" id="btn-login">Entrar</button>
+            </div>
+
+            <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted)">
+              ¿Sin cuenta? <a href="register.html">Crear una nueva</a> ·
+              <a href="forgot_password.html">¿Olvidó su contraseña?</a>
+            </p>
+          </div>
+
+          <div class="panel" style="margin-top:14px;background:#fefce8;border-color:#fde68a">
+            <p class="small" style="color:#78350f">
+              <strong>Nota:</strong> Para esta demo, la autenticación biométrica se realiza localmente en el navegador. No se envían datos biométricos a ningún servidor.
+            </p>
+          </div>
+        </aside>
+      </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="JS/sha256.js"></script>
+  <script src="JS/facialRecognition.js"></script>
+  <script src="JS/signatureRecognition.js"></script>
+  <script src="JS/db.js"></script>
+  <script src="JS/session.js"></script>
+  <script src="JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(() => splash.classList.add('hidden'), 600);
+
+    // Show registered demo users
+    const users = await MdtDB.Users.getAll();
+    if (users.length > 0) {
+      document.getElementById('demo-users').style.display = 'block';
+      const list = document.getElementById('demo-list');
+      users.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.style.cssText = 'display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px';
+        div.innerHTML = `<div class="avatar" style="width:32px;height:32px;font-size:13px">${u.fullname[0]}</div>
+          <div><div style="font-size:13px;font-weight:600">${u.fullname}</div><div class="small">${u.email}</div></div>`;
+        div.onclick = () => { document.getElementById('email').value = u.email; document.getElementById('password').focus(); };
+        list.appendChild(div);
+      });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('login-error');
+      el.textContent = msg; el.style.display = 'flex';
+      document.getElementById('login-info').style.display = 'none';
+    }
+    function showInfo(msg) {
+      const el = document.getElementById('login-info');
+      el.textContent = msg; el.style.display = 'flex';
+      document.getElementById('login-error').style.display = 'none';
+    }
+
+    document.getElementById('btn-login').onclick = async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('btn-login');
+
+      if (!email || !password) { showError('Complete todos los campos'); return; }
+
+      btn.textContent = 'Verificando…'; btn.disabled = true;
+      document.getElementById('login-error').style.display = 'none';
+
+      const user = await MdtDB.Users.getByEmail(email);
+      if (!user) { showError('Usuario no encontrado'); btn.textContent='Entrar'; btn.disabled=false; return; }
+
+      const pwOk = await MdtCrypto.verifyPassword(password, user.passwordSalt, user.passwordHash);
+      if (!pwOk) {
+        showError('Contraseña incorrecta');
+        await MdtAudit.log(user.id, 'LOGIN_FAILED_PASSWORD', { email }, false);
+        btn.textContent='Entrar'; btn.disabled=false; return;
+      }
+
+      showInfo('✓ Contraseña correcta. Iniciando verificación biométrica…');
+
+      try {
+        await MdtAuthModal.prompt(user.id, 'Verificación de identidad — Inicio de sesión');
+        MdtSession.set(user);
+        await MdtAudit.log(user.id, 'LOGIN_SUCCESS', { email }, true);
+        if (user.role === 'admin' && window.location.hostname !== '127.0.0.1') {
+    showError('Acceso de administrador no permitido desde esta dirección.');
+    btn.textContent = 'Entrar'; btn.disabled = false;
+    return;
+  }
+  window.location.href = user.role === 'admin' ? 'dashboardAdmin.html' : 'dashboardGeneral.html';
+            } catch (err) {
+        showError('Autenticación cancelada o fallida: ' + err.message);
+        await MdtAudit.log(user.id, 'LOGIN_FAILED_BIOMETRIC', { email }, false);
+        btn.textContent='Entrar'; btn.disabled=false;
+      }
+    };
+
+    // Enter key shortcut
+    document.getElementById('password').onkeydown = (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-login').click();
+    };
+  })();
+</script>
+</body>
+</html>

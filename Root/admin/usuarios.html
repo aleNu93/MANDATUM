@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Administración de usuarios</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Gestión de usuarios</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link primary" href="usuarios.html">Usuarios</a>
+      <a class="nav-link" href="logs.html">Auditoría</a> 
+      <a class="nav-link" href="admin_dashboard.html">Resumen Completo</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div id="global-msg" class="alert" style="display:none;margin-bottom:16px"></div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div class="card-title">Usuarios registrados</div>
+            <div class="card-sub">Gestión de cuentas y plantillas biométricas.</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="search" placeholder="Buscar por nombre o email…" style="width:240px"/>
+            <span class="badge" id="count-badge">0 usuarios</span>
+          </div>
+        </div>
+
+        <div id="users-grid" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+
+      <!-- User detail modal -->
+      <div id="user-modal" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,.7);z-index:500;align-items:center;justify-content:center;padding:16px">
+        <div class="card" style="max-width:600px;width:100%;max-height:85vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div class="card-title" id="modal-title">Usuario</div>
+            <button class="btn btn--ghost btn--sm" id="modal-close">✕</button>
+          </div>
+          <div id="modal-body"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+    <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const session = MdtSession.requireAdmin();
+    if(!session) throw new Error('not logged');
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(session.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='../auth.html';};
+
+    function showMsg(type,msg){const el=document.getElementById('global-msg');el.className='alert alert-'+type;el.innerHTML=msg;el.style.display='flex';}
+
+    async function render(filter='') {
+      let users = await MdtDB.Users.getAll();
+      if (filter) users = users.filter(u=>u.fullname.toLowerCase().includes(filter)||u.email.toLowerCase().includes(filter));
+      document.getElementById('count-badge').textContent = users.length+' usuarios';
+      const grid = document.getElementById('users-grid');
+      if (users.length===0) { grid.innerHTML='<p class="small muted" style="padding:20px;text-align:center">No hay usuarios que coincidan.</p>'; return; }
+      grid.innerHTML='';
+      await MdtDelegations.checkExpired();
+      for (const u of users) {
+        const emit=await MdtDelegations.getByDelegador(u.id);
+        const recv=await MdtDelegations.getByDelegado(u.id);
+        const faceRec = await MdtDB.FacialDB.getByUser(u.id);
+        const sigRec  = await MdtDB.SignatureDB.getByUser(u.id);
+        const div=document.createElement('div');
+        div.className='delegation-card';
+        div.style.display='grid';div.style.gridTemplateColumns='auto 1fr auto auto';div.style.alignItems='center';div.style.gap='16px';
+        div.innerHTML=`
+          <div class="avatar" style="width:44px;height:44px;font-size:18px">${u.fullname[0]}</div>
+          <div>
+            <div style="font-weight:700;font-size:15px">${u.fullname}</div>
+            <div class="small">${u.email}</div>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              ${faceRec?.templateB64?'<span class="badge badge--success" style="font-size:11px">📸 Facial</span>':'<span class="badge badge--warning" style="font-size:11px">📸 Sin facial</span>'}
+              ${sigRec?.templateB64?'<span class="badge badge--success" style="font-size:11px">✍️ Firma</span>':'<span class="badge badge--warning" style="font-size:11px">✍️ Sin firma</span>'}
+              <span class="badge" style="font-size:11px">📤 ${emit.length} emitidas</span>
+              <span class="badge" style="font-size:11px">📥 ${recv.length} recibidas</span>
+            </div>
+          </div>
+          <div class="small muted" style="text-align:right">
+            <div>${mdtFormatDate(u.createdAt)}</div>
+            <div style="margin-top:2px">${u.role==='admin'?'<span class="badge">Admin</span>':'<span class="badge">Usuario</span>'}</div>
+          </div>
+          <button class="btn btn--ghost btn--sm" onclick="showUser('${u.id}')">Ver detalle</button>`;
+        grid.appendChild(div);
+      }
+    }
+
+    document.getElementById('search').oninput=(e)=>render(e.target.value.toLowerCase());
+    render();
+
+    async function showUser(id) {
+      const u = await MdtDB.Users.getById(id);
+      if (!u) return;
+      const emit    = await MdtDB.DelegacionesDB.getByDelegador(u.id);
+      const recv    = await MdtDB.DelegacionesDB.getByDelegado(u.id);
+      const faceRec = await MdtDB.FacialDB.getByUser(u.id);
+      const sigRec  = await MdtDB.SignatureDB.getByUser(u.id);
+      const isMe    = u.id === session.id;
+      const isAdmin = u.role === 'admin';
+
+      document.getElementById('modal-title').textContent = u.fullname;
+      document.getElementById('modal-body').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+            <div class="avatar" style="width:52px;height:52px;font-size:22px;flex-shrink:0">${u.fullname[0]}</div>
+            <div style="flex:1">
+              <div style="font-size:16px;font-weight:800;color:var(--text)">${u.fullname}</div>
+              <div class="small">${u.email}</div>
+              <div style="margin-top:6px">
+                <span style="background:${isAdmin?'#f0fdf4':'#f0f9ff'};color:${isAdmin?'var(--success)':'var(--accent)'};padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700">
+                  ${isAdmin ? '🛡️ Administrador' : '👤 Usuario'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          ${!isMe ? `
+          <div class="panel" style="background:${isAdmin?'#fff8e1':'#f0fdf4'};border-color:${isAdmin?'#fde68a':'#bbf7d0'}">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+              <div>
+                <div style="font-size:13px;font-weight:700">Gestión de rol</div>
+                <div class="small muted">Rol actual: <strong>${isAdmin?'Administrador':'Usuario estándar'}</strong></div>
+              </div>
+              <button class="btn btn--sm ${isAdmin?'btn--danger':'btn--success'}"
+                      onclick="changeRole('${u.id}','${isAdmin?'user':'admin'}')">
+                ${isAdmin ? '⬇ Quitar admin' : '⬆ Hacer admin'}
+              </button>
+            </div>
+          </div>` : `
+          <div class="panel" style="background:#fefce8;border-color:#fde68a">
+            <p class="small" style="color:#78350f;margin:0">⚠️ Este es su propio usuario — no puede modificar su propio rol.</p>
+          </div>`}
+
+          <div class="grid-2">
+            <div class="panel" style="background:${faceRec?'#f0fdf4':'#fff0f0'};border-color:${faceRec?'#bbf7d0':'#fecaca'}">
+              <div class="small muted">Plantilla facial</div>
+              <div style="font-weight:700;color:${faceRec?'var(--success)':'var(--danger)'}">${faceRec?'✓ Registrada':'✗ Sin registrar'}</div>
+            </div>
+            <div class="panel" style="background:${sigRec?'#f0fdf4':'#fff0f0'};border-color:${sigRec?'#bbf7d0':'#fecaca'}">
+              <div class="small muted">Plantilla de firma</div>
+              <div style="font-weight:700;color:${sigRec?'var(--success)':'var(--danger)'}">${sigRec?'✓ Registrada':'✗ Sin registrar'}</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="small muted">ID · Registrado</div>
+            <div style="font-family:var(--mono);font-size:11px;color:#475569;margin-top:2px">${u.id}</div>
+            <div class="small muted" style="margin-top:4px">${mdtFormatDate(u.createdAt)}</div>
+          </div>
+          <div class="panel">
+            <div class="small muted" style="margin-bottom:4px">Clave pública RSA-OAEP</div>
+            <div class="fingerprint-box">${u.publicKeyRSA.slice(0,80)}…</div>
+          </div>
+          <div class="panel">
+            <div class="small muted" style="margin-bottom:4px">Clave pública ECDSA-P256</div>
+            <div class="fingerprint-box">${u.publicKeyECDSA.slice(0,80)}…</div>
+          </div>
+          <div class="grid-2">
+            <div class="panel" style="text-align:center">
+              <div style="font-size:28px;font-weight:800;color:var(--text)">${emit.length}</div>
+              <div class="small muted">emitidas</div>
+            </div>
+            <div class="panel" style="text-align:center">
+              <div style="font-size:28px;font-weight:800;color:var(--text)">${recv.length}</div>
+              <div class="small muted">recibidas</div>
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('user-modal').style.display = 'flex';
+    }
+
+    async function changeRole(userId, newRole) {
+      const u = await MdtDB.Users.getById(userId);
+      const verb = newRole === 'admin' ? 'convertir en administrador a' : 'quitar el rol de administrador a';
+      if (!confirm(`¿Confirma que desea ${verb} ${u.fullname}?`)) return;
+      try {
+        await MdtDB.Users.setRole(userId, newRole);
+        await MdtAudit.log(session.id, 'ROLE_CHANGED', { targetId: userId, targetName: u.fullname, newRole }, true);
+        document.getElementById('user-modal').style.display = 'none';
+        render(document.getElementById('search').value);
+        showMsg('success', `✓ Rol de <strong>${u.fullname}</strong> cambiado a <strong>${newRole === 'admin' ? 'Administrador' : 'Usuario'}</strong>.`);
+      } catch(e) {
+        showMsg('error', 'Error al cambiar rol: ' + e.message);
+      }
+    }
+
+    window.showUser    = showUser;
+    window.changeRole  = changeRole;
+
+    document.getElementById('modal-close').onclick=()=>document.getElementById('user-modal').style.display='none';
+    document.getElementById('user-modal').onclick=(e)=>{if(e.target===document.getElementById('user-modal'))document.getElementById('user-modal').style.display='none';};
+  })();
+</script>
+</body>
+</html>

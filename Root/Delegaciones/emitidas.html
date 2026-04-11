@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mandatum — Delegaciones emitidas</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+</head>
+<body class="app" style="background-image:linear-gradient(rgba(255,255,255,0.45),rgba(255,255,255,0.45)),var(--dash-bg);background-size:cover;background-position:center">
+  <div id="splash"><div class="splash__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></div><h2>Mandatum</h2><p>Cargando…</p><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">
+      <a href="../dashboardGeneral.html" class="brand__logo"><img src="../Images/mandatumlogo.png" alt="Mandatum" onerror="this.style.display='none'"/></a>
+      <div class="brand__title"><h1>Mandatum</h1><div class="muted">Delegaciones emitidas</div></div>
+    </div>
+    <nav>
+      <a class="nav-link" href="../dashboardGeneral.html">Dashboard</a>
+      <a class="nav-link" href="crear.html">Nueva Delegación</a>
+      <a class="nav-link primary" href="emitidas.html">Emitidas</a>
+      <a class="nav-link" href="recibidas.html">Recibidas</a>
+      <a class="nav-link" href="revocar.html">Revocar</a>
+      <a class="nav-link" href="usar.html">Usar</a>
+      <a class="nav-link" href="../profile.html">Perfil</a>
+      <a class="nav-link danger-link" id="btn-logout" href="#">Salir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div>
+            <div class="card-title">Delegaciones emitidas</div>
+            <div class="card-sub">Delegaciones que usted ha creado como delegador.</div>
+          </div>
+          <a class="btn btn--primary btn--sm" href="crear.html">+ Nueva</a>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid" style="margin-bottom:16px">
+          <div class="form-row"><label>Filtrar por estado</label>
+            <select id="filter-status">
+              <option value="">Todos</option>
+              <option value="ACTIVE">Activas</option>
+              <option value="WAITING_ACCEPT">Pendientes</option>
+              <option value="REVOKED">Revocadas</option>
+              <option value="EXPIRED">Expiradas</option>
+            </select>
+          </div>
+          <div></div>
+          <div style="display:flex;align-items:flex-end">
+            <span class="badge" id="count-badge">0 delegaciones</span>
+          </div>
+        </div>
+
+        <div class="scroll-x">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Delegado</th><th>Alcance</th><th>Creada</th><th>Vigencia</th><th>Estado</th><th>Firma ECDSA</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+              <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No hay delegaciones emitidas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detail modal -->
+      <div id="detail-modal" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,.7);z-index:500;display:none;align-items:center;justify-content:center;padding:16px">
+        <div class="card" style="max-width:580px;width:100%;max-height:80vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div class="card-title" id="detail-id">Detalle</div>
+            <button class="btn btn--ghost btn--sm" id="detail-close">✕ Cerrar</button>
+          </div>
+          <div id="detail-content"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer><small class="muted">© <span id="year"></span> Mandatum</small></footer>
+
+    <script src="../JS/sha256.js"></script>
+  <script src="../JS/facialRecognition.js"></script>
+  <script src="../JS/signatureRecognition.js"></script>
+  <script src="../JS/db.js"></script>
+  <script src="../JS/session.js"></script>
+  <script src="../JS/auth-modal.js"></script>
+  <script>
+(async () => {
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const splash = document.getElementById('splash');
+    splash.classList.remove('hidden');
+    setTimeout(()=>splash.classList.add('hidden'),600);
+
+    const user = MdtSession.require();
+    if (!user) throw new Error('not logged');
+    document.getElementById('btn-logout').onclick=async(e)=>{e.preventDefault();await MdtAudit.log(user.id,'LOGOUT',{},true);MdtSession.clear();window.location.href='../auth.html';};
+
+    await MdtDelegations.checkExpired();
+
+    async function render(filter='') {
+      let delegaciones = await MdtDelegations.getByDelegador(user.id);
+      if (filter) delegaciones = delegaciones.filter(d=>d.status===filter);
+      delegaciones.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      document.getElementById('count-badge').textContent = delegaciones.length+' delegaciones';
+
+      const tbody = document.getElementById('table-body');
+      if (delegaciones.length===0) {
+        tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">No hay delegaciones que coincidan con el filtro.</td></tr>';
+        return;
+      }
+      tbody.innerHTML='';
+      for (const d of delegaciones) {
+        const delegado = await MdtDB.Users.getById(d.delegadoId);
+        const tr = document.createElement('tr');
+        tr.innerHTML=`
+          <td class="small" style="font-family:var(--mono)">${d.id}</td>
+          <td><div style="font-weight:600">${delegado?.fullname||d.delegadoId}</div><div class="small">${delegado?.email||''}</div></td>
+          <td>${d.scope}</td>
+          <td class="small">${mdtFormatDate(d.createdAt)}</td>
+          <td class="small">${mdtFormatDate(d.vigencia)}</td>
+          <td>${mdtStatusBadge(d.status)}</td>
+          <td><span class="badge badge--success" title="${d.ecdsaSignature?.slice(0,20)}…">✓ Verificable</span></td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn--ghost btn--sm" onclick="showDetail('${d.id}')">Ver</button>
+            ${['ACTIVE','WAITING_ACCEPT'].includes(d.status)?`<a class="btn btn--sm btn--danger" href="revocar.html?id=${d.id}">Revocar</a>`:''}
+          </td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    document.getElementById('filter-status').onchange = (e) => render(e.target.value);
+    render();
+
+    async function showDetail(id) {
+      const d = await MdtDelegations.getById(id);
+      if(!d)return;
+      const delegado=await MdtDB.Users.getById(d.delegadoId);
+      const modal=document.getElementById('detail-modal');
+      document.getElementById('detail-id').textContent=d.id;
+      document.getElementById('detail-content').innerHTML=`
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="panel"><div class="small muted">Alcance</div><div style="font-weight:700">${d.scope}</div></div>
+          <div class="grid-2">
+            <div class="panel"><div class="small muted">Delegado</div><div style="font-weight:600">${delegado?.fullname}</div><div class="small">${delegado?.email}</div></div>
+            <div class="panel"><div class="small muted">Estado</div>${mdtStatusBadge(d.status)}</div>
+          </div>
+          <div class="grid-2">
+            <div class="panel"><div class="small muted">Creada</div><div>${mdtFormatDate(d.createdAt)}</div></div>
+            <div class="panel"><div class="small muted">Vigencia hasta</div><div>${mdtFormatDate(d.vigencia)}</div></div>
+          </div>
+          <div class="panel"><div class="small muted" style="margin-bottom:4px">Justificación</div><p class="small">${d.justificacion}</p></div>
+          <div class="panel">
+            <div class="small muted" style="margin-bottom:4px">Hash SHA-256 del documento</div>
+            <div class="fingerprint-box">${d.docHash}</div>
+          </div>
+          <div class="panel">
+            <div class="small muted" style="margin-bottom:4px">Firma ECDSA-P256 del delegador</div>
+            <div class="fingerprint-box">${d.ecdsaSignature?.slice(0,80)}…</div>
+          </div>
+          ${d.revokedAt?`<div class="alert alert-error"><div><strong>Revocada:</strong> ${mdtFormatDate(d.revokedAt)}<br/><span class="small">Motivo: ${d.revokeReason}</span></div></div>`:''}
+        </div>`;
+      modal.style.display='flex';
+    }
+
+    window.showDetail = showDetail;
+
+    document.getElementById('detail-close').onclick=()=>document.getElementById('detail-modal').style.display='none';
+    document.getElementById('detail-modal').onclick=(e)=>{ if(e.target===document.getElementById('detail-modal')) document.getElementById('detail-modal').style.display='none'; };
+  })();
+</script>
+</body>
+</html>
